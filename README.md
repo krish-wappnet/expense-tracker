@@ -67,34 +67,27 @@ git clone https://github.com/your-username/expense-tracker.git
 cd expense-tracker
 Install dependencies:
 
-sh
-Copy
+
 Edit
 npm install
 Compile and Hot-Reload for Development
 Run the development server with hot-reloading:
 
-sh
-Copy
-Edit
+
 npm run dev
 Open http://localhost:5173 in your browser to view the app.
 
 Type-Check, Compile, and Minify for Production
 Build the app for production:
 
-sh
-Copy
-Edit
+
 npm run build
 This will generate a dist folder with the production-ready files.
 
 Lint with ESLint
 Run the linter to check for code quality issues:
 
-sh
-Copy
-Edit
+
 npm run lint
 Usage
 Add an Expense:
@@ -138,33 +131,25 @@ Deployment
 To deploy the app to a hosting service like Netlify, Vercel, or GitHub Pages:
 
 Build the app:
-sh
-Copy
-Edit
+
 npm run build
 Deploy the dist folder to your hosting service:
 Netlify:
 Drag and drop the dist folder into Netlify’s web interface, or use the CLI:
 
-sh
-Copy
-Edit
+
 npm install -g netlify-cli
 netlify deploy --prod --dir=dist
 Vercel:
 Use the Vercel CLI:
 
-sh
-Copy
-Edit
+
 npm install -g vercel
 vercel --prod
 GitHub Pages:
 Configure vite.config.ts with the correct base path and deploy:
 
-sh
-Copy
-Edit
+
 npm run build
 npm run deploy
 Future Improvements
