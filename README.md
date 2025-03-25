@@ -2,6 +2,8 @@
 
 A modern, responsive web application built with Vue 3, TypeScript, and Vite, designed to help users manage their expenses efficiently. The app allows users to add, edit, delete, and filter expenses, visualize spending patterns with charts, and export/import data for portability. It features a clean UI with dark mode support and is optimized for both desktop and mobile devices.
 
+Demo Video: https://drive.google.com/file/d/16fTDoil8C5WOZ59z2_IcdU089S7VoWCP/view?usp=sharing
+
 ## Features
 
 ### Add, Edit, and Delete Expenses:
