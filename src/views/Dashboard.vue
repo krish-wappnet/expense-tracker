@@ -1,9 +1,9 @@
 <template>
   <v-container fluid class="pa-6" :class="{ 'dark-mode': darkMode }">
     <!-- Header -->
-    <v-row align="center">
+    <v-row align="center" class="mb-4">
       <v-col cols="12" sm="6">
-        <h1 class="display-1 font-weight-bold">Expense Tracker</h1>
+        <h1 class="display-1 font-weight-bold">{{ t('expenseTracker') }}</h1>
       </v-col>
       <v-col cols="12" sm="6" class="d-flex justify-sm-end align-center flex-wrap gap-2">
         <v-btn
@@ -11,29 +11,43 @@
           @click="showAddForm = true"
           prepend-icon="mdi-plus"
           elevation="2"
+          rounded
         >
-          Add Expense
+          {{ t('addExpense') }}
         </v-btn>
-        <v-btn color="red" outlined @click="showClearDialog = true" class="ml-2">
-          Clear All Data
+        <v-btn color="red" outlined @click="showClearDialog = true" class="ml-2" rounded>
+          {{ t('clearAllData') }}
         </v-btn>
-        <v-btn color="secondary" @click="store.exportExpenses" class="ml-2">
-          Export
+        <v-btn color="secondary" @click="store.exportExpenses" class="ml-2" rounded>
+          {{ t('export') }}
         </v-btn>
-        <v-btn color="secondary" class="ml-2">
-          Import
+        <v-btn color="secondary" class="ml-2" rounded style="position: relative;">
+          {{ t('import') }}
           <input
             type="file"
             @change="store.importExpenses"
-            style="position: absolute; opacity: 0; width: 100%; height: 100%;"
+            style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;"
           />
         </v-btn>
-        <v-switch
-          v-model="darkMode"
-          label="Dark Mode"
-          color="primary"
-          hide-details
+        <v-btn
+          :icon="darkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waxing-crescent'"
           class="ml-2"
+          @click="toggleDarkMode"
+          :aria-label="t('darkMode')"
+          variant="text"
+        />
+        <v-select
+          v-model="locale"
+          :items="languages"
+          item-title="name"
+          item-value="code"
+          :label="t('language')"
+          prepend-icon="mdi-earth"
+          outlined
+          class="ml-2 language-select"
+          style="max-width: 200px; min-width: 180px;"
+          :aria-label="t('language')"
+          hide-details
         />
       </v-col>
     </v-row>
@@ -41,31 +55,31 @@
     <!-- Summary Card with Pie Chart -->
     <v-row class="mt-4">
       <v-col cols="12">
-        <v-card elevation="2" class="pa-4">
-          <v-card-title class="subtitle-1">Summary</v-card-title>
+        <v-card elevation="4" class="pa-4" rounded="lg">
+          <v-card-title class="subtitle-1 font-weight-medium">{{ t('summary') }}</v-card-title>
           <v-card-text>
-            <v-row>
+            <v-row align="center">
               <v-col cols="12" md="6">
-                <v-row>
+                <v-row class="gap-2">
                   <v-col cols="12" sm="4">
-                    <v-chip color="primary" label>
-                      Total Expenses: {{ filteredExpenses.length }}
+                    <v-chip color="primary" label prepend-icon="mdi-format-list-bulleted">
+                      {{ t('totalExpenses', { count: filteredExpenses.length }) }}
                     </v-chip>
                   </v-col>
                   <v-col cols="12" sm="4">
-                    <v-chip color="green" label>
-                      Total Amount: ₹ {{ totalAmount.toFixed(2) }}
+                    <v-chip color="green" label prepend-icon="mdi-currency-inr">
+                      {{ t('totalAmount', { amount: totalAmount.toFixed(2) }) }}
                     </v-chip>
                   </v-col>
                   <v-col cols="12" sm="4">
-                    <v-chip color="orange" label>
-                      Average Amount: ₹ {{ averageAmount.toFixed(2) }}
+                    <v-chip color="orange" label prepend-icon="mdi-calculator">
+                      {{ t('averageAmount', { amount: averageAmount.toFixed(2) }) }}
                     </v-chip>
                   </v-col>
                 </v-row>
               </v-col>
               <v-col cols="12" md="6">
-                <div style="height: 200px;">
+                <div style="height: 220px;">
                   <Pie :data="summaryChartData" :options="summaryChartOptions" />
                 </div>
               </v-col>
@@ -75,33 +89,44 @@
       </v-col>
     </v-row>
 
-    <!-- Collapsible Date Range Filter -->
+    <!-- Filters: Date Range and Search -->
     <v-row class="mt-4">
       <v-col cols="12">
-        <v-expansion-panels>
-          <v-expansion-panel>
-            <v-expansion-panel-title>Filter by Date Range</v-expansion-panel-title>
+        <v-expansion-panels flat>
+          <v-expansion-panel rounded="lg">
+            <v-expansion-panel-title class="font-weight-medium">
+              {{ t('filters') }}
+            </v-expansion-panel-title>
             <v-expansion-panel-text>
               <v-row align="center">
-                <v-col cols="12" sm="6" md="4">
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model="searchQuery"
+                    :label="t('searchExpenses')"
+                    prepend-inner-icon="mdi-magnify"
+                    outlined
+                    clearable
+                    background-color="white"
+                    :aria-label="t('searchExpenses')"
+                  />
+                </v-col>
+                <v-col cols="12" sm="4">
                   <v-menu
                     v-model="startDateMenu"
                     :close-on-content-click="false"
                     transition="scale-transition"
-                    offset-y
-                    min-width="auto"
                   >
                     <template v-slot:activator="{ props }">
                       <v-text-field
                         v-model="startDate"
-                        label="Start Date (dd-mm-yyyy)"
-                        prepend-icon="mdi-calendar"
+                        :label="t('startDate')"
+                        prepend-inner-icon="mdi-calendar"
                         readonly
                         outlined
-                        dense
                         clearable
                         v-bind="props"
                         background-color="white"
+                        :aria-label="t('startDate')"
                       />
                     </template>
                     <v-date-picker
@@ -109,30 +134,26 @@
                       @update:modelValue="updateStartDate"
                       :max="endDateRaw ? endDateRaw.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]"
                       no-title
-                      @click:cancel="startDateMenu = false"
-                      @click:save="startDateMenu = false"
                     />
                   </v-menu>
                 </v-col>
-                <v-col cols="12" sm="6" md="4">
+                <v-col cols="12" sm="4">
                   <v-menu
                     v-model="endDateMenu"
                     :close-on-content-click="false"
                     transition="scale-transition"
-                    offset-y
-                    min-width="auto"
                   >
                     <template v-slot:activator="{ props }">
                       <v-text-field
                         v-model="endDate"
-                        label="End Date (dd-mm-yyyy)"
-                        prepend-icon="mdi-calendar"
+                        :label="t('endDate')"
+                        prepend-inner-icon="mdi-calendar"
                         readonly
                         outlined
-                        dense
                         clearable
                         v-bind="props"
                         background-color="white"
+                        :aria-label="t('endDate')"
                       />
                     </template>
                     <v-date-picker
@@ -141,20 +162,8 @@
                       :min="startDateRaw ? startDateRaw.toISOString().split('T')[0] : undefined"
                       :max="new Date().toISOString().split('T')[0]"
                       no-title
-                      @click:cancel="endDateMenu = false"
-                      @click:save="endDateMenu = false"
                     />
                   </v-menu>
-                </v-col>
-                <v-col cols="12" md="4" class="d-flex align-center">
-                  <v-btn
-                    color="grey"
-                    text
-                    @click="clearDates"
-                    :disabled="!startDate && !endDate"
-                  >
-                    Clear Dates
-                  </v-btn>
                 </v-col>
               </v-row>
             </v-expansion-panel-text>
@@ -165,57 +174,64 @@
 
     <!-- Expense List and Chart -->
     <v-row class="mt-6">
-      <v-col cols="12" md="6">
+      <v-col cols="12" lg="6">
         <ExpenseList :expenses="filteredExpenses" @edit="editExpense" @delete="deleteExpense" />
       </v-col>
-      <v-col cols="12" md="6">
+      <v-col cols="12" lg="6">
         <ExpenseChart :expenses="filteredExpenses" />
       </v-col>
     </v-row>
 
-    <!-- Add Expense Form -->
+    <!-- Forms and Dialogs -->
     <ExpenseForm :show="showAddForm" @update:show="showAddForm = $event" />
-    <!-- Edit Expense Form -->
     <ExpenseForm :show="showEditForm" :expense="selectedExpense" @update:show="showEditForm = $event" />
-
-    <!-- Clear All Data Confirmation Dialog -->
     <v-dialog v-model="showClearDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">Confirm Clear All Data</v-card-title>
-        <v-card-text>
-          Are you sure you want to clear all expenses? This action cannot be undone.
-        </v-card-text>
+      <v-card rounded="lg">
+        <v-card-title class="headline">{{ t('confirmClearAllData') }}</v-card-title>
+        <v-card-text>{{ t('clearAllDataMessage') }}</v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn color="grey" text @click="showClearDialog = false">Cancel</v-btn>
-          <v-btn color="red" text @click="clearAllData">Clear</v-btn>
+          <v-btn color="grey" text @click="showClearDialog = false">{{ t('cancel') }}</v-btn>
+          <v-btn color="red" text @click="clearAllData">{{ t('clear') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar v-model="showSnackbar" :timeout="2000" color="success" rounded="pill">
+      {{ t('languageChanged') }}
+      <template v-slot:actions>
+        <v-btn color="white" variant="text" @click="showSnackbar = false">{{ t('close') }}</v-btn>
+      </template>
+    </v-snackbar>
   </v-container>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useExpenseStore } from '@/stores/expenseStore';
 import ExpenseList from '@/components/ExpenseList.vue';
 import ExpenseChart from '@/components/ExpenseChart.vue';
 import ExpenseForm from '@/components/ExpenseForm.vue';
 import { Pie } from 'vue-chartjs';
-import { Chart, registerables } from 'chart.js';
-import type { ChartData, ChartOptions } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, type ChartData, type ChartOptions } from 'chart.js';
 import type { Expense } from '@/types/expense';
+import { useI18n } from 'vue-i18n';
 
-Chart.register(...registerables);
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const store = useExpenseStore();
+const { locale, t } = useI18n();
 const showAddForm = ref(false);
 const showEditForm = ref(false);
 const selectedExpense = ref<Expense | undefined>(undefined);
 const showClearDialog = ref(false);
+const showSnackbar = ref(false);
 const darkMode = ref(false);
+const searchQuery = ref<string>('');
 
-// Date Range Filter
+// Date Range
 const startDateMenu = ref(false);
 const endDateMenu = ref(false);
 const startDateRaw = ref<Date | null>(null);
@@ -223,48 +239,59 @@ const endDateRaw = ref<Date | null>(null);
 const startDate = ref<string | null>(null);
 const endDate = ref<string | null>(null);
 
-// Format date to dd-mm-yyyy
+// Language Options
+const languages = [
+  { code: 'en', name: 'English' },
+  { code: 'fr', name: 'Français' },
+];
+
+// Dark Mode Handling
+onMounted(() => {
+  const savedDarkMode = localStorage.getItem('darkMode');
+  darkMode.value = savedDarkMode ? JSON.parse(savedDarkMode) : false;
+});
+
+const toggleDarkMode = () => {
+  darkMode.value = !darkMode.value;
+  localStorage.setItem('darkMode', JSON.stringify(darkMode.value));
+};
+
+// Language Persistence
+watch(locale, (newLocale) => {
+  localStorage.setItem('language', newLocale);
+  showSnackbar.value = true;
+});
+
+// Date Handling
 const formatDate = (date: Date | null): string | null => {
   if (!date) return null;
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   return `${day}-${month}-${year}`;
 };
 
-// Parse date string (dd-mm-yyyy) to Date object
 const parseDate = (dateStr: string | null): Date | null => {
   if (!dateStr || !/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return null;
-  const [day, month, year] = dateStr.split("-").map(Number);
+  const [day, month, year] = dateStr.split('-').map(Number);
   return new Date(year, month - 1, day);
 };
 
-// Update Start Date
 const updateStartDate = (date: Date | null) => {
   startDate.value = formatDate(date);
   startDateRaw.value = date;
   startDateMenu.value = false;
 };
 
-// Update End Date
 const updateEndDate = (date: Date | null) => {
   endDate.value = formatDate(date);
   endDateRaw.value = date;
   endDateMenu.value = false;
 };
 
-// Clear Dates
-const clearDates = () => {
-  startDate.value = null;
-  endDate.value = null;
-  startDateRaw.value = null;
-  endDateRaw.value = null;
-};
-
-// Computed expenses from store
+// Filtering Logic
 const expenses = computed(() => store.expenses);
 
-// Filtered expenses based on date range
 const filteredExpenses = computed(() => {
   let result = expenses.value;
   if (startDate.value) {
@@ -285,27 +312,38 @@ const filteredExpenses = computed(() => {
       });
     }
   }
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter((exp) =>
+      [
+        
+        exp.category,
+        exp.amount.toString(),
+        exp.date,
+      ].some((field) => field.toLowerCase().includes(query))
+    );
+  }
   return result;
 });
 
 // Summary Calculations
-const totalAmount = computed(() => {
-  return filteredExpenses.value.reduce((sum, exp) => sum + exp.amount, 0);
-});
+const totalAmount = computed(() =>
+  filteredExpenses.value.reduce((sum, exp) => sum + exp.amount, 0)
+);
 
-const averageAmount = computed(() => {
-  return filteredExpenses.value.length ? totalAmount.value / filteredExpenses.value.length : 0;
-});
+const averageAmount = computed(() =>
+  filteredExpenses.value.length ? totalAmount.value / filteredExpenses.value.length : 0
+);
 
-// Summary Pie Chart Data
-const summaryChartData = computed<ChartData<'pie', number[], string>>(() => {
+// Pie Chart Data
+const summaryChartData = computed<ChartData<'pie'>>(() => {
   const categoryTotals = filteredExpenses.value.reduce((acc, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
     return acc;
   }, {} as Record<string, number>);
 
   return {
-    labels: Object.keys(categoryTotals),
+    labels: Object.keys(categoryTotals).map((cat) => t(`categories.${cat.toLowerCase()}`, cat)),
     datasets: [
       {
         data: Object.values(categoryTotals),
@@ -317,13 +355,13 @@ const summaryChartData = computed<ChartData<'pie', number[], string>>(() => {
   };
 });
 
-const summaryChartOptions: ChartOptions<'pie'> = {
+const summaryChartOptions = computed<ChartOptions<'pie'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
       position: 'bottom',
-      labels: { color: '#333', font: { size: 12 } },
+      labels: { color: darkMode.value ? '#fff' : '#333', font: { size: 12 } },
     },
     tooltip: {
       callbacks: {
@@ -335,9 +373,9 @@ const summaryChartOptions: ChartOptions<'pie'> = {
       },
     },
   },
-};
+}));
 
-// Clear All Data
+// Actions
 const clearAllData = () => {
   store.resetExpenses();
   showClearDialog.value = false;
@@ -348,9 +386,7 @@ const editExpense = (expense: Expense) => {
   showEditForm.value = true;
 };
 
-const deleteExpense = (id: string) => {
-  store.deleteExpense(id);
-};
+const deleteExpense = (id: string) => store.deleteExpense(id);
 </script>
 
 <style scoped>
@@ -358,20 +394,52 @@ const deleteExpense = (id: string) => {
   gap: 8px;
 }
 
+.v-container {
+  background-color: #f5f5f5;
+  color: #333;
+  transition: background-color 0.3s ease;
+}
+
+.v-card,
+.v-chip,
+.v-text-field {
+  background-color: #ffffff;
+  transition: background-color 0.3s ease;
+}
+
 .dark-mode {
-  background-color: #121212 !important;
-  color: #ffffff !important;
+  background-color: #121212;
 }
 
 .dark-mode .v-card,
 .dark-mode .v-chip,
-.dark-mode .v-text-field,
-.dark-mode .v-btn {
-  background-color: #1e1e1e !important;
+.dark-mode .v-text-field {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+.dark-mode .v-expansion-panel-title,
+.dark-mode .v-expansion-panel-text {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+/* Fix for heading color in dark mode */
+.dark-mode h1 {
   color: #ffffff !important;
 }
 
-.dark-mode .v-chip {
-  border: 1px solid #ffffff;
+.language-select {
+  max-width: 200px;
+  min-width: 180px;
+  font-size: 16px; /* Larger text for readability */
+}
+
+.language-select .v-select__selection {
+  font-size: 16px; /* Ensure selected text is readable */
+}
+
+.v-snackbar {
+  font-weight: medium;
 }
 </style>

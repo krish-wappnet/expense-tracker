@@ -1,0 +1,120 @@
+/* src/styles/global.css */
+
+/* Light Mode (default) */
+:root {
+  --background-color: #f5f5f5;
+  --text-color: #333;
+  --card-background: #ffffff;
+  --border-color: #ccc;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.v-container,
+.v-card,
+.v-chip,
+.v-text-field,
+.v-select {
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.v-chip {
+  border: 1px solid var(--border-color);
+}
+
+/* Dark Mode */
+.dark-mode {
+  --background-color: #121212;
+  --text-color: #ffffff;
+  --card-background: #1e1e1e;
+  --border-color: #ffffff;
+}
+
+.dark-mode .v-container,
+.dark-mode .v-card,
+.dark-mode .v-chip,
+.dark-mode .v-text-field,
+.dark-mode .v-select {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.dark-mode .v-chip {
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-mode .v-expansion-panel-title,
+.dark-mode .v-expansion-panel-text {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+/* Dialog Styles */
+.v-dialog .v-card {
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+/* Data Table Styles */
+.v-data-table {
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.v-data-table .v-data-table-header th {
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.v-data-table .v-data-table__tr {
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.dark-mode .v-data-table {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.dark-mode .v-data-table .v-data-table-header th {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.dark-mode .v-data-table .v-data-table__tr {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+/* Tabs Styles */
+.v-tabs {
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.v-tab {
+  color: var(--text-color);
+}
+
+.dark-mode .v-tabs {
+  background-color: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.dark-mode .v-tab {
+  color: var(--text-color) !important;
+}
+
+/* Snackbar Styles */
+.v-snackbar__content {
+  color: #333; /* Dark text for light mode */
+}
+
+.dark-mode .v-snackbar__content {
+  color: #ffffff !important; /* White text for dark mode */
+}
