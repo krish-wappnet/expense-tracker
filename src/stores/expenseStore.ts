@@ -1,80 +1,100 @@
 // src/stores/expenseStore.ts
 import { defineStore } from 'pinia';
-import { ref, watch, type Ref } from 'vue';
+import { ref } from 'vue';
 import type { Expense } from '@/types/expense';
+import { fetchExpenses, addExpense, updateExpense, deleteExpense } from '@/services/expenseService';
 
-// Define the interface for the store
-interface ExpenseStore {
-  expenses: Ref<Expense[]>; // Use Ref<Expense[]> to match the reactive ref
-  addExpense: (expense: Omit<Expense, 'id'>) => void;
-  updateExpense: (id: string, updatedExpense: Partial<Expense>) => void;
-  deleteExpense: (id: string) => void;
-  resetExpenses: () => void;
-  exportExpenses: () => void;
-  importExpenses: (event: Event) => void;
-}
+export const useExpenseStore = defineStore('expense', {
+  state: () => ({
+    expenses: ref<Expense[]>([]),
+    loading: ref(false),
+    error: ref<string | null>(null), // Add error state for validation errors
+  }),
 
-export const useExpenseStore = defineStore<'expense', ExpenseStore>('expense', () => {
-  // Load expenses from localStorage on initialization
-  const initialExpenses: Expense[] = (() => {
-    const savedExpenses = localStorage.getItem('expenses');
-    return savedExpenses ? JSON.parse(savedExpenses) : [];
-  })();
-
-  const expenses = ref<Expense[]>(initialExpenses);
-
-  // Watch for changes to expenses and save to localStorage
-  watch(
-    expenses,
-    (newExpenses) => {
-      localStorage.setItem('expenses', JSON.stringify(newExpenses));
+  actions: {
+    async fetchExpenses(userId: number) { // Changed from string to number
+      try {
+        this.loading = true;
+        this.error = null;
+        this.expenses = await fetchExpenses(userId);
+      } catch (error: any) {
+        this.error = error.message || 'Failed to fetch expenses';
+        console.error('Failed to fetch expenses:', error);
+      } finally {
+        this.loading = false;
+      }
     },
-    { deep: true }
-  );
 
-  const addExpense = (expense: Omit<Expense, 'id'>) => {
-    const newExpense: Expense = { ...expense, id: crypto.randomUUID() };
-    expenses.value.push(newExpense);
-  };
+    async addExpense(expense: Omit<Expense, 'id'>) {
+      try {
+        this.error = null;
+        const newExpense = await addExpense(expense);
+        this.expenses.push(newExpense);
+      } catch (error: any) {
+        this.error = error.message || 'Failed to add expense';
+        console.error('Failed to add expense:', error);
+        throw error; // Re-throw to handle in the component
+      }
+    },
 
-  const updateExpense = (id: string, updatedExpense: Partial<Expense>) => {
-    const index = expenses.value.findIndex((exp) => exp.id === id);
-    if (index !== -1) {
-      expenses.value[index] = { ...expenses.value[index], ...updatedExpense };
-    }
-  };
+    async updateExpense(expense: Expense) {
+      try {
+        this.error = null;
+        const updatedExpense = await updateExpense(expense);
+        const index = this.expenses.findIndex((exp) => exp.id === expense.id);
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      } catch (error: any) {
+        this.error = error.message || 'Failed to update expense';
+        console.error('Failed to update expense:', error);
+        throw error; // Re-throw to handle in the component
+      }
+    },
 
-  const deleteExpense = (id: string) => {
-    expenses.value = expenses.value.filter((exp) => exp.id !== id);
-  };
+    async deleteExpense(id: string) {
+      try {
+        this.error = null;
+        await deleteExpense(id);
+        this.expenses = this.expenses.filter((exp) => exp.id !== id);
+      } catch (error: any) {
+        this.error = error.message || 'Failed to delete expense';
+        console.error('Failed to delete expense:', error);
+        throw error;
+      }
+    },
 
-  const resetExpenses = () => {
-    expenses.value = [];
-    localStorage.removeItem('expenses');
-  };
+    resetExpenses() {
+      this.expenses = [];
+      this.error = null;
+    },
 
-  const exportExpenses = () => {
-    const dataStr = JSON.stringify(expenses.value);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'expenses.json';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+    exportExpenses() {
+      const dataStr = JSON.stringify(this.expenses);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'expenses.json';
+      link.click();
+      window.URL.revokeObjectURL(url);
+    },
 
-  const importExpenses = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        expenses.value = JSON.parse(text);
-      };
-      reader.readAsText(input.files[0]);
-    }
-  };
-
-  return { expenses, addExpense, updateExpense, deleteExpense, resetExpenses, exportExpenses, importExpenses };
+    importExpenses(event: Event) {
+      const input = event.target as HTMLInputElement;
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importedExpenses = JSON.parse(e.target?.result as string) as Expense[];
+            this.expenses = importedExpenses;
+          } catch (error) {
+            console.error('Failed to import expenses:', error);
+            this.error = 'Failed to import expenses';
+          }
+        };
+        reader.readAsText(input.files[0]);
+      }
+    },
+  },
 });

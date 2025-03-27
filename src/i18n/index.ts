@@ -4,6 +4,15 @@ import { createI18n } from 'vue-i18n';
 const messages = {
   en: {
     // Existing translations
+
+    signUp: 'Sign Up',
+    login: 'Login',
+    name: 'Name',
+    email: 'Email',
+    password: 'Password',
+    signUpInstead: 'Sign Up Instead',
+    signUpFailed: 'Sign up failed. Please try again.',
+    loginFailed: 'Login failed. Please check your credentials.',
     expenseTracker: 'Expense Tracker',
     darkMode: 'Dark Mode',
     addExpense: 'Add Expense',
@@ -80,9 +89,34 @@ const messages = {
     languageChanged: 'Language changed successfully',
     close: 'Close',
     expenseDeleted: 'Expense deleted successfully',
+    profile: 'Profile',
+    uploadProfilePicture: 'Upload Profile Picture',
+    logout: 'Logout',
+
+   
+    loginSuccess: 'Login successful! Redirecting...',
+    emailRequired: 'Email is required',
+    emailInvalid: 'Invalid email format',
+    passwordRequired: 'Password is required',
+    passwordTooShort: 'Password must be at least 6 characters',
+    alreadyHaveAccount: 'Already have an account?',
+    dontHaveAccount: 'Don’t have an account?',
+
+
+    emailInUse: 'This email is already in use.',
+    invalidCredentials: 'Invalid credentials.',
   },
   fr: {
     // Existing translations
+
+    signUp: 'S\'inscrire',
+    login: 'Se connecter',
+    name: 'Nom',
+    email: 'Email',
+    password: 'Mot de passe',
+    signUpInstead: 'S\'inscrire à la place',
+    signUpFailed: 'Échec de l\'inscription. Veuillez réessayer.',
+    loginFailed: 'Échec de la connexion. Veuillez vérifier vos identifiants.',
     expenseTracker: 'Suivi des dépenses',
     darkMode: 'Mode sombre',
     addExpense: 'Ajouter une dépense',
@@ -159,6 +193,22 @@ const messages = {
     languageChanged: 'Langue changée avec succès',
     close: 'Fermer',
     expenseDeleted: 'Dépense supprimée avec succès',
+    profile: 'Profil',
+    uploadProfilePicture: 'Télécharger une photo de profil',
+    logout: 'Se déconnecter',
+
+    loginSuccess: 'Connexion réussie ! Redirection...',
+    emailRequired: 'L\'email est requis',
+    emailInvalid: 'Format d\'email invalide',
+    passwordRequired: 'Le mot de passe est requis',
+    passwordTooShort: 'Le mot de passe doit contenir au moins 6 caractères',
+    alreadyHaveAccount: 'Vous avez déjà un compte ?',
+    dontHaveAccount: 'Vous n\'avez pas de compte ?',
+
+
+    emailInUse: 'Cet email est déjà utilisé.',
+    invalidCredentials: 'Identifiants invalides.',
+
   },
 };
 

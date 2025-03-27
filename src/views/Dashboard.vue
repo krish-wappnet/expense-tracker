@@ -1,3 +1,4 @@
+<!-- src/components/Dashboard.vue -->
 <template>
   <v-container fluid class="pa-6" :class="{ 'dark-mode': darkMode }">
     <!-- Header -->
@@ -28,6 +29,31 @@
             @change="store.importExpenses"
             style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;"
           />
+        </v-btn>
+        <!-- Conditional Rendering for Profile and Logout Buttons -->
+        <v-btn
+          v-if="authStore.isAuthenticated"
+          icon
+          @click="router.push('/profile')"
+          class="ml-2"
+          :aria-label="t('profile')"
+        >
+          <v-avatar size="36">
+            <img
+              :src="authStore.currentUser?.profilePicture || 'https://via.placeholder.com/36'"
+              alt="Profile Picture"
+            />
+          </v-avatar>
+        </v-btn>
+        <v-btn
+          v-if="authStore.isAuthenticated"
+          color="red"
+          text
+          @click="logoutUser"
+          class="ml-2"
+          rounded
+        >
+          {{ t('logout') }}
         </v-btn>
         <v-btn
           :icon="darkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waxing-crescent'"
@@ -209,7 +235,10 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useExpenseStore } from '@/stores/expenseStore';
+import { useAuthStore } from '@/stores/auth';
+import { logout } from '@/services/authService';
 import ExpenseList from '@/components/ExpenseList.vue';
 import ExpenseChart from '@/components/ExpenseChart.vue';
 import ExpenseForm from '@/components/ExpenseForm.vue';
@@ -222,6 +251,8 @@ import { useI18n } from 'vue-i18n';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const store = useExpenseStore();
+const authStore = useAuthStore();
+const router = useRouter();
 const { locale, t } = useI18n();
 const showAddForm = ref(false);
 const showEditForm = ref(false);
@@ -247,13 +278,33 @@ const languages = [
 
 // Dark Mode Handling
 onMounted(() => {
+  // Load dark mode preference from localStorage
   const savedDarkMode = localStorage.getItem('darkMode');
   darkMode.value = savedDarkMode ? JSON.parse(savedDarkMode) : false;
+
+  // Load language preference from localStorage
+  const savedLanguage = localStorage.getItem('language');
+  if (savedLanguage) {
+    locale.value = savedLanguage;
+  }
+
+  // Fetch expenses for the authenticated user
+  if (authStore.isAuthenticated && authStore.currentUser) {
+    store.fetchExpenses(authStore.currentUser.id).catch((error) => {
+      console.error('Failed to fetch expenses:', error);
+    });
+  } else {
+    router.push('/login'); // Redirect to login if not authenticated
+  }
 });
 
 const toggleDarkMode = () => {
   darkMode.value = !darkMode.value;
   localStorage.setItem('darkMode', JSON.stringify(darkMode.value));
+  // Optionally update Vuetify theme if using Vuetify's theme system
+  // if (vuetify) {
+  //   vuetify.theme.global.name.value = darkMode.value ? 'dark' : 'light';
+  // }
 };
 
 // Language Persistence
@@ -316,11 +367,12 @@ const filteredExpenses = computed(() => {
     const query = searchQuery.value.toLowerCase();
     result = result.filter((exp) =>
       [
-        
-        exp.category,
+        exp.title.toLowerCase(), // Added title to search
+        exp.category.toLowerCase(),
         exp.amount.toString(),
-        exp.date,
-      ].some((field) => field.toLowerCase().includes(query))
+        exp.date.toLowerCase(),
+        exp.paymentMethod.toLowerCase(), // Added paymentMethod to search
+      ].some((field) => field.includes(query))
     );
   }
   return result;
@@ -342,12 +394,19 @@ const summaryChartData = computed<ChartData<'pie'>>(() => {
     return acc;
   }, {} as Record<string, number>);
 
+  const labels = Object.keys(categoryTotals);
+  const data = Object.values(categoryTotals);
+
   return {
-    labels: Object.keys(categoryTotals).map((cat) => t(`categories.${cat.toLowerCase()}`, cat)),
+    labels: labels.length
+      ? labels.map((cat) => t(`categories.${cat.toLowerCase()}`, cat))
+      : [t('noData')],
     datasets: [
       {
-        data: Object.values(categoryTotals),
-        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+        data: data.length ? data : [1], // Fallback to [1] to avoid empty chart
+        backgroundColor: data.length
+          ? ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+          : ['#E0E0E0'], // Gray color for "No Data"
         borderColor: '#fff',
         borderWidth: 1,
       },
@@ -368,6 +427,7 @@ const summaryChartOptions = computed<ChartOptions<'pie'>>(() => ({
         label: (context) => {
           const label = context.label || '';
           const value = context.raw as number;
+          if (label === t('noData')) return label;
           return `${label}: ₹${value.toFixed(2)}`;
         },
       },
@@ -386,7 +446,18 @@ const editExpense = (expense: Expense) => {
   showEditForm.value = true;
 };
 
-const deleteExpense = (id: string) => store.deleteExpense(id);
+const deleteExpense = async (id: string) => {
+  try {
+    await store.deleteExpense(id);
+  } catch (error) {
+    console.error('Failed to delete expense:', error);
+  }
+};
+
+const logoutUser = () => {
+  logout();
+  router.push('/login');
+};
 </script>
 
 <style scoped>

@@ -1,3 +1,4 @@
+<!-- src/components/ExpenseForm.vue -->
 <template>
   <v-dialog v-model="dialog" max-width="800" persistent>
     <v-card elevation="6" class="mx-auto">
@@ -89,40 +90,6 @@
               />
             </v-menu>
 
-            <!-- Conditional "To Date" Field for Travel -->
-            <div v-if="tempCategory === 'Travel'">
-              <v-menu
-                v-model="toDateMenu"
-                :close-on-content-click="false"
-                transition="scale-transition"
-                offset-y
-                min-width="auto"
-              >
-                <template v-slot:activator="{ props }">
-                  <v-text-field
-                    v-model="form.toDate"
-                    :label="t('toDate')"
-                    :rules="toDateRules"
-                    placeholder="dd-mm-yyyy"
-                    outlined
-                    dense
-                    readonly
-                    v-bind="props"
-                    :aria-label="t('toDate')"
-                  />
-                </template>
-                <v-date-picker
-                  v-model="toDate"
-                  @update:modelValue="updateToDate"
-                  :min="form.date"
-                  :max="new Date().toISOString().split('T')[0]"
-                  no-title
-                  @click:cancel="toDateMenu = false"
-                  @click:save="toDateMenu = false"
-                />
-              </v-menu>
-            </div>
-
             <v-row class="mt-4">
               <v-col>
                 <v-btn color="grey" text @click="step = '1'" block>
@@ -166,7 +133,7 @@
             />
             <v-row class="mt-4">
               <v-col>
-                <v-btn color="grey" text @click="goBackToStep2" block>
+                <v-btn color="grey" text @click="step = '2'" block>
                   {{ t('back') }}
                 </v-btn>
               </v-col>
@@ -187,9 +154,6 @@
                 <p><strong>{{ t('title') }}:</strong> {{ form.title }}</p>
                 <p><strong>{{ t('amount') }}:</strong> {{ formatCurrency(form.amount) }}</p>
                 <p><strong>{{ t('date') }}:</strong> {{ form.date }}</p>
-                <p v-if="form.category === 'Travel' && form.toDate">
-                  <strong>{{ t('toDate') }}:</strong> {{ form.toDate }}
-                </p>
                 <p><strong>{{ t('category') }}:</strong> {{ form.category }}</p>
                 <p><strong>{{ t('paymentMethod') }}:</strong> {{ form.paymentMethod }}</p>
               </v-card-text>
@@ -201,7 +165,7 @@
                 </v-btn>
               </v-col>
               <v-col>
-                <v-btn color="primary" type="submit" block elevation="2">
+                <v-btn color="primary" type="submit" block elevation="2" :loading="loading">
                   {{ t('submit') }}
                 </v-btn>
               </v-col>
@@ -211,21 +175,21 @@
       </v-card-text>
     </v-card>
 
-    <!-- Snackbar for Expense Action Confirmation -->
+    <!-- Snackbar for Feedback -->
     <v-snackbar
-      v-model="showSnackbar"
-      :timeout="2000"
-      color="success"
+      v-model="snackbar.show"
+      :timeout="3000"
+      :color="snackbar.color"
       class="custom-snackbar"
       :class="{ 'dark-mode': isDarkMode }"
       location="top right"
     >
-      {{ isEdit ? t('expenseUpdated') : t('expenseAdded') }}
+      {{ snackbar.message }}
       <template v-slot:actions>
         <v-btn
           color="white"
           variant="text"
-          @click="showSnackbar = false"
+          @click="snackbar.show = false"
           class="snackbar-close-btn"
         >
           {{ t('close') }}
@@ -238,43 +202,36 @@
 <script lang="ts" setup>
 import { ref, watch, computed, reactive } from "vue";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { useAuthStore } from "@/stores/auth";
 import type { Expense } from "@/types/expense";
 import type { VForm } from "vuetify/components";
 import { useI18n } from 'vue-i18n';
 
-// Extend the Expense interface to include optional toDate field
-interface ExtendedExpense extends Expense {
-  toDate?: string | null;
-}
-
 // Define props and emits
 const props = defineProps<{
   show: boolean;
-  expense?: ExtendedExpense;
+  expense?: Expense;
 }>();
 const emit = defineEmits<{
   (e: "update:show", value: boolean): void;
 }>();
 
-// Store
+// Stores
 const store = useExpenseStore();
+const authStore = useAuthStore();
 const dialog = ref(props.show);
 
 // Use i18n for translations
 const { t, locale } = useI18n();
 
-// Use `reactive()` for form state with toDate field for travel
+// Use `reactive()` for form state
 const form = reactive({
   title: "",
   amount: 0,
   date: "",
   category: null as Expense["category"] | null,
   paymentMethod: null as Expense["paymentMethod"] | null,
-  toDate: null as string | null,
 });
-
-// Temporary category to use in Step 2
-const tempCategory = ref<Expense["category"] | null>(null);
 
 // Form References for Validation with proper typing
 const formStep1 = ref<VForm | null>(null);
@@ -287,12 +244,17 @@ const step = ref("1");
 
 // Date Picker State
 const fromDateMenu = ref(false);
-const toDateMenu = ref(false);
 const fromDate = ref<Date | null>(null);
-const toDate = ref<Date | null>(null);
 
 // Snackbar State
-const showSnackbar = ref(false);
+const snackbar = ref({
+  show: false,
+  message: '',
+  color: 'success',
+});
+
+// Loading State
+const loading = ref(false);
 
 // Dropdown Options
 const categories: Array<Expense["category"]> = ["Food", "Travel", "Shopping", "Bills", "Others"];
@@ -311,27 +273,6 @@ const formatDate = (date: Date | null): string => {
   return `${day}-${month}-${year}`;
 };
 
-// Parse date string (dd-mm-yyyy) to Date object for comparison
-const parseDate = (dateStr: string): Date | null => {
-  if (!dateStr || !/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return null;
-  const [day, month, year] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-};
-
-// Validation rule for To Date
-const toDateRules = computed(() => [
-  (v: string) =>
-    tempCategory.value !== "Travel" ||
-    (v && /^\d{2}-\d{2}-\d{4}$/.test(v)) ||
-    t('invalidDateFormat'),
-  (v: string) =>
-    tempCategory.value !== "Travel" ||
-    !v ||
-    !form.date ||
-    (parseDate(v) && parseDate(form.date) && parseDate(v)! >= parseDate(form.date)!) ||
-    t('toDateCannotBeEarlier'),
-]);
-
 // Format the amount with the currency symbol based on the locale
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat(locale.value, {
@@ -344,12 +285,6 @@ const formatCurrency = (value: number): string => {
 const updateFromDate = (date: Date | null) => {
   form.date = formatDate(date);
   fromDateMenu.value = false;
-};
-
-// Update To Date
-const updateToDate = (date: Date | null) => {
-  form.toDate = formatDate(date);
-  toDateMenu.value = false;
 };
 
 // Sync dialog with props.show and reset form
@@ -365,17 +300,11 @@ watch(
           date: props.expense.date,
           category: props.expense.category,
           paymentMethod: props.expense.paymentMethod,
-          toDate: props.expense.toDate ?? null,
         });
-        tempCategory.value = props.expense.category;
-        // Parse dates for the date pickers
+        // Parse date for the date picker
         if (props.expense.date) {
           const [day, month, year] = props.expense.date.split("-").map(Number);
           fromDate.value = new Date(year, month - 1, day);
-        }
-        if (props.expense.toDate) {
-          const [day, month, year] = props.expense.toDate.split("-").map(Number);
-          toDate.value = new Date(year, month - 1, day);
         }
       } else {
         Object.assign(form, {
@@ -384,11 +313,8 @@ watch(
           date: "",
           category: null,
           paymentMethod: null,
-          toDate: null,
         });
-        tempCategory.value = null;
         fromDate.value = null;
-        toDate.value = null;
       }
       step.value = "1"; // Reset to first step when dialog opens
       formStep1.value?.resetValidation();
@@ -403,14 +329,6 @@ watch(
 watch(dialog, (val) => {
   emit("update:show", val);
 });
-
-// Watch for category changes to update tempCategory
-watch(
-  () => form.category,
-  (newVal) => {
-    tempCategory.value = newVal;
-  }
-);
 
 // Watch step changes for debugging
 watch(step, (newVal) => {
@@ -436,30 +354,53 @@ const nextStep = async (currentStep: number) => {
   step.value = String(currentStep + 1);
 };
 
-// Go back to Step 2 and preserve tempCategory
-const goBackToStep2 = () => {
-  tempCategory.value = form.category; // Preserve the category value
-  step.value = "2";
-};
-
 // Save Expense
 const saveExpense = async () => {
-  const expenseData: Omit<ExtendedExpense, "id"> = {
+  if (!authStore.currentUser) {
+    snackbar.value = {
+      show: true,
+      message: t('notAuthenticated'),
+      color: 'error',
+    };
+    return;
+  }
+
+  const expenseData: Omit<Expense, "id"> = {
     title: form.title!,
     amount: form.amount!,
     date: form.date!,
     category: form.category!,
     paymentMethod: form.paymentMethod!,
-    toDate: form.category === "Travel" ? form.toDate : null,
+    userId: authStore.currentUser.id, // Add userId from auth store
   };
 
-  if (isEdit.value && props.expense?.id) {
-    store.updateExpense(props.expense.id, expenseData);
-  } else {
-    store.addExpense(expenseData);
+  loading.value = true;
+  try {
+    if (isEdit.value && props.expense?.id) {
+      await store.updateExpense({ ...expenseData, id: props.expense.id });
+      snackbar.value = {
+        show: true,
+        message: t('expenseUpdated'),
+        color: 'success',
+      };
+    } else {
+      await store.addExpense(expenseData);
+      snackbar.value = {
+        show: true,
+        message: t('expenseAdded'),
+        color: 'success',
+      };
+    }
+    closeDialog();
+  } catch (error: any) {
+    snackbar.value = {
+      show: true,
+      message: error.message || t('operationFailed'),
+      color: 'error',
+    };
+  } finally {
+    loading.value = false;
   }
-  showSnackbar.value = true; // Show snackbar on successful save
-  closeDialog();
 };
 
 // Close Dialog and Reset Form
