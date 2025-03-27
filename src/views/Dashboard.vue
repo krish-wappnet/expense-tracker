@@ -379,9 +379,11 @@ const filteredExpenses = computed(() => {
 });
 
 // Summary Calculations
-const totalAmount = computed(() =>
-  filteredExpenses.value.reduce((sum, exp) => sum + exp.amount, 0)
-);
+const totalAmount = computed(() => {
+  return Number(
+    filteredExpenses.value.reduce((sum, exp) => sum + exp.amount, 0)
+  );
+});
 
 const averageAmount = computed(() =>
   filteredExpenses.value.length ? totalAmount.value / filteredExpenses.value.length : 0

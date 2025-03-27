@@ -6,5 +6,5 @@ export interface Expense {
   category: 'Food' | 'Travel' | 'Shopping' | 'Bills' | 'Others';
   paymentMethod: 'Cash' | 'Card' | 'Online';
   userId: number; // Add userId to associate with a user
-  sharedWith?: { userId: string; share: number }[];
+  sharedWith: { name: string; email: string; share: number }[];
 }

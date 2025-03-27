@@ -19,7 +19,7 @@
           </v-stepper-header>
         </v-stepper>
 
-        <!-- Custom Stepper Content with v-if -->
+        <!-- Step 1: Basic Details -->
         <div v-if="step === '1'">
           <v-form ref="formStep1" @submit.prevent="nextStep(1)">
             <v-text-field
@@ -57,6 +57,7 @@
           </v-form>
         </div>
 
+        <!-- Step 2: Date Details -->
         <div v-if="step === '2'">
           <v-form ref="formStep2" @submit.prevent="nextStep(2)">
             <v-menu
@@ -89,7 +90,6 @@
                 @click:save="fromDateMenu = false"
               />
             </v-menu>
-
             <v-row class="mt-4">
               <v-col>
                 <v-btn color="grey" text @click="step = '1'" block>
@@ -105,6 +105,7 @@
           </v-form>
         </div>
 
+        <!-- Step 3: Category, Payment, and User Selection -->
         <div v-if="step === '3'">
           <v-form ref="formStep3" @submit.prevent="nextStep(3)">
             <v-select
@@ -131,6 +132,59 @@
               item-value="value"
               :aria-label="t('paymentMethod')"
             />
+
+            <!-- Add Shared Users -->
+            <h3 class="mb-2">{{ t('splitWith') }}</h3>
+            <v-row>
+              <v-col cols="12" sm="5">
+                <v-text-field
+                  v-model="newSharedUser.name"
+                  :label="t('name')"
+                  outlined
+                  dense
+                  :aria-label="t('name')"
+                />
+              </v-col>
+              <v-col cols="12" sm="5">
+                <v-text-field
+                  v-model="newSharedUser.email"
+                  :label="t('email')"
+                  outlined
+                  dense
+                  :aria-label="t('email')"
+                />
+              </v-col>
+              <v-col cols="12" sm="2">
+                <v-btn
+                  color="primary"
+                  @click="addSharedUser"
+                  :disabled="!newSharedUser.name || !newSharedUser.email"
+                  block
+                >
+                  {{ t('add') }}
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <!-- Display Added Shared Users -->
+            <v-list v-if="form.sharedWith.length" dense class="mt-2">
+              <v-list-item
+                v-for="(user, index) in form.sharedWith"
+                :key="index"
+                class="shared-user-item"
+              >
+                <v-list-item-content>
+                  <v-list-item-title>{{ user.name }} ({{ user.email }})</v-list-item-title>
+                </v-list-item-content>
+                <v-list-item-action>
+                  <v-btn icon color="red" @click="removeSharedUser(index)">
+                    <v-icon>mdi-delete</v-icon>
+                  </v-btn>
+                </v-list-item-action>
+              </v-list-item>
+            </v-list>
+            <p v-else class="text-grey">{{ t('noUsersSelected') }}</p>
+
             <v-row class="mt-4">
               <v-col>
                 <v-btn color="grey" text @click="step = '2'" block>
@@ -146,6 +200,7 @@
           </v-form>
         </div>
 
+        <!-- Step 4: Review and Submit -->
         <div v-if="step === '4'">
           <v-form ref="formStep4" @submit.prevent="saveExpense">
             <v-card flat class="mb-4">
@@ -156,6 +211,8 @@
                 <p><strong>{{ t('date') }}:</strong> {{ form.date }}</p>
                 <p><strong>{{ t('category') }}:</strong> {{ form.category }}</p>
                 <p><strong>{{ t('paymentMethod') }}:</strong> {{ form.paymentMethod }}</p>
+                <p><strong>{{ t('splitWith') }}:</strong> {{ sharedUsersDisplay }}</p>
+                <p><strong>{{ t('yourShare') }}:</strong> {{ formatCurrency(splitAmount) }}</p>
               </v-card-text>
             </v-card>
             <v-row class="mt-4">
@@ -200,11 +257,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, reactive } from "vue";
-import { useExpenseStore } from "@/stores/expenseStore";
-import { useAuthStore } from "@/stores/auth";
-import type { Expense } from "@/types/expense";
-import type { VForm } from "vuetify/components";
+import { ref, watch, computed, reactive } from 'vue';
+import { useExpenseStore } from '@/stores/expenseStore';
+import { useAuthStore } from '@/stores/auth';
+import type { Expense } from '@/types/expense';
+import type { VForm } from 'vuetify/components';
 import { useI18n } from 'vue-i18n';
 
 // Define props and emits
@@ -213,7 +270,7 @@ const props = defineProps<{
   expense?: Expense;
 }>();
 const emit = defineEmits<{
-  (e: "update:show", value: boolean): void;
+  (e: 'update:show', value: boolean): void;
 }>();
 
 // Stores
@@ -226,21 +283,29 @@ const { t, locale } = useI18n();
 
 // Use `reactive()` for form state
 const form = reactive({
-  title: "",
+  title: '',
   amount: 0,
-  date: "",
-  category: null as Expense["category"] | null,
-  paymentMethod: null as Expense["paymentMethod"] | null,
+  date: '',
+  category: null as Expense['category'] | null,
+  paymentMethod: null as Expense['paymentMethod'] | null,
+  userId: authStore.currentUser?.id || 0,
+  sharedWith: [] as { name: string; email: string; share: number }[], // Updated to store name and email
 });
 
-// Form References for Validation with proper typing
+// Form to add a new shared user
+const newSharedUser = reactive({
+  name: '',
+  email: '',
+});
+
+// Form References for Validation
 const formStep1 = ref<VForm | null>(null);
 const formStep2 = ref<VForm | null>(null);
 const formStep3 = ref<VForm | null>(null);
 const formStep4 = ref<VForm | null>(null);
 
 // Stepper State
-const step = ref("1");
+const step = ref('1');
 
 // Date Picker State
 const fromDateMenu = ref(false);
@@ -257,18 +322,47 @@ const snackbar = ref({
 const loading = ref(false);
 
 // Dropdown Options
-const categories: Array<Expense["category"]> = ["Food", "Travel", "Shopping", "Bills", "Others"];
-const paymentMethods: Array<Expense["paymentMethod"]> = ["Cash", "Card", "Online"];
+const categories: Array<Expense['category']> = ['Food', 'Travel', 'Shopping', 'Bills', 'Others'];
+const paymentMethods: Array<Expense['paymentMethod']> = ['Cash', 'Card', 'Online'];
 const isEdit = computed(() => !!props.expense);
+
+// Computed properties for user selection
+const sharedUsersDisplay = computed(() => {
+  if (!form.sharedWith.length) return t('noUsersSelected');
+  return form.sharedWith.map(user => `${user.name} (${user.email})`).join(', ');
+});
+
+const splitAmount = computed(() => {
+  const totalUsers = form.sharedWith.length + 1; // Include current user
+  return form.amount / totalUsers;
+});
+
+// Add a shared user
+const addSharedUser = () => {
+  if (newSharedUser.name && newSharedUser.email) {
+    form.sharedWith.push({
+      name: newSharedUser.name,
+      email: newSharedUser.email,
+      share: 0, // Will be calculated when saving
+    });
+    newSharedUser.name = '';
+    newSharedUser.email = '';
+  }
+};
+
+// Remove a shared user
+const removeSharedUser = (index: number) => {
+  form.sharedWith.splice(index, 1);
+};
 
 // Check if dark mode is enabled
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark-mode'));
 
 // Format date to dd-mm-yyyy
 const formatDate = (date: Date | null): string => {
-  if (!date) return "";
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+  if (!date) return '';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   return `${day}-${month}-${year}`;
 };
@@ -277,7 +371,7 @@ const formatDate = (date: Date | null): string => {
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat(locale.value, {
     style: 'currency',
-    currency: 'INR', // You can make this dynamic based on user settings
+    currency: 'INR',
   }).format(value);
 };
 
@@ -300,39 +394,37 @@ watch(
           date: props.expense.date,
           category: props.expense.category,
           paymentMethod: props.expense.paymentMethod,
+          userId: props.expense.userId,
+          sharedWith: props.expense.sharedWith || [],
         });
-        // Parse date for the date picker
         if (props.expense.date) {
-          const [day, month, year] = props.expense.date.split("-").map(Number);
+          const [day, month, year] = props.expense.date.split('-').map(Number);
           fromDate.value = new Date(year, month - 1, day);
         }
       } else {
         Object.assign(form, {
-          title: "",
+          title: '',
           amount: 0,
-          date: "",
+          date: '',
           category: null,
           paymentMethod: null,
+          userId: authStore.currentUser?.id || 0,
+          sharedWith: [],
         });
         fromDate.value = null;
       }
-      step.value = "1"; // Reset to first step when dialog opens
+      step.value = '1';
       formStep1.value?.resetValidation();
       formStep2.value?.resetValidation();
       formStep3.value?.resetValidation();
       formStep4.value?.resetValidation();
     }
-  }
+  },
 );
 
 // Emit dialog state changes to parent
 watch(dialog, (val) => {
-  emit("update:show", val);
-});
-
-// Watch step changes for debugging
-watch(step, (newVal) => {
-  console.log(`Current step: ${newVal}`);
+  emit('update:show', val);
 });
 
 // Navigate to next step after validation
@@ -342,7 +434,6 @@ const nextStep = async (currentStep: number) => {
   else if (currentStep === 2) formRef = formStep2.value;
   else if (currentStep === 3) formRef = formStep3.value;
 
-  // Ensure formRef is defined before proceeding
   if (!formRef) {
     console.error(`Form reference for step ${currentStep} is undefined`);
     return;
@@ -365,13 +456,24 @@ const saveExpense = async () => {
     return;
   }
 
-  const expenseData: Omit<Expense, "id"> = {
+  // Calculate the share for each user
+  const totalUsers = form.sharedWith.length + 1; // Include current user
+  const sharePerUser = form.amount / totalUsers;
+
+  // Update sharedWith with calculated shares
+  const sharedWith = form.sharedWith.map(user => ({
+    ...user,
+    share: sharePerUser,
+  }));
+
+  const expenseData: Omit<Expense, 'id'> = {
     title: form.title!,
     amount: form.amount!,
     date: form.date!,
     category: form.category!,
     paymentMethod: form.paymentMethod!,
-    userId: authStore.currentUser.id, // Add userId from auth store
+    userId: form.userId,
+    sharedWith,
   };
 
   loading.value = true;
@@ -406,7 +508,7 @@ const saveExpense = async () => {
 // Close Dialog and Reset Form
 const closeDialog = () => {
   dialog.value = false;
-  emit("update:show", false);
+  emit('update:show', false);
 };
 </script>
 
@@ -416,6 +518,10 @@ const closeDialog = () => {
 }
 
 .snackbar-close-btn {
-  color: #ffffff !important; /* Ensure the "Close" button text is white for visibility */
+  color: #ffffff !important;
+}
+
+.shared-user-item {
+  border-bottom: 1px solid #e0e0e0;
 }
 </style>

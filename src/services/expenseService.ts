@@ -31,13 +31,14 @@ export const validateExpense = (expense: Partial<Expense>): string[] => {
   return errors;
 };
 
-export const fetchExpenses = async (userId: number): Promise<Expense[]> => {
+export const fetchExpenses = async (): Promise<Expense[]> => {
   try {
-    const response = await axiosInstance.get(`/expenses?userId=${userId.toString()}`); // Convert userId to string for query param
+    const response = await axiosInstance.get('/expenses'); // Removed userId query param
     return response.data;
   } catch (error: any) {
-    console.error('Error fetching expenses:', error.response?.data || error.message);
-    throw error;
+    const message = error.response?.data?.message || error.message || 'Failed to fetch expenses';
+    console.error('Error fetching expenses:', message);
+    throw new Error(message);
   }
 };
 
@@ -51,8 +52,9 @@ export const addExpense = async (expense: Omit<Expense, 'id'>): Promise<Expense>
     const response = await axiosInstance.post('/expenses', expense);
     return response.data;
   } catch (error: any) {
-    console.error('Error adding expense:', error.response?.data || error.message);
-    throw error;
+    const message = error.response?.data?.message || error.message || 'Failed to add expense';
+    console.error('Error adding expense:', message);
+    throw new Error(message);
   }
 };
 
@@ -66,8 +68,9 @@ export const updateExpense = async (expense: Expense): Promise<Expense> => {
     const response = await axiosInstance.put(`/expenses/${expense.id}`, expense);
     return response.data;
   } catch (error: any) {
-    console.error('Error updating expense:', error.response?.data || error.message);
-    throw error;
+    const message = error.response?.data?.message || error.message || 'Failed to update expense';
+    console.error('Error updating expense:', message);
+    throw new Error(message);
   }
 };
 
@@ -75,7 +78,8 @@ export const deleteExpense = async (id: string): Promise<void> => {
   try {
     await axiosInstance.delete(`/expenses/${id}`);
   } catch (error: any) {
-    console.error('Error deleting expense:', error.response?.data || error.message);
-    throw error;
+    const message = error.response?.data?.message || error.message || 'Failed to delete expense';
+    console.error('Error deleting expense:', message);
+    throw new Error(message);
   }
 };

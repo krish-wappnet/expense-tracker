@@ -105,6 +105,12 @@ const messages = {
 
     emailInUse: 'This email is already in use.',
     invalidCredentials: 'Invalid credentials.',
+
+  
+    noData: "No Data",
+    loading: "Loading...",
+
+   
   },
   fr: {
     // Existing translations
@@ -209,6 +215,8 @@ const messages = {
     emailInUse: 'Cet email est déjà utilisé.',
     invalidCredentials: 'Identifiants invalides.',
 
+    "noData": "Aucune donnée",
+    "loading": "Chargement..."
   },
 };
 

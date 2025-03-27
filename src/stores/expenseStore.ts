@@ -4,19 +4,43 @@ import { ref } from 'vue';
 import type { Expense } from '@/types/expense';
 import { fetchExpenses, addExpense, updateExpense, deleteExpense } from '@/services/expenseService';
 
+export interface User {
+  id: number;
+  name: string;
+}
+
 export const useExpenseStore = defineStore('expense', {
   state: () => ({
     expenses: ref<Expense[]>([]),
+    users: ref<User[]>([]),
     loading: ref(false),
-    error: ref<string | null>(null), // Add error state for validation errors
+    error: ref<string | null>(null),
   }),
 
   actions: {
-    async fetchExpenses(userId: number) { // Changed from string to number
+    async fetchUsers() {
       try {
         this.loading = true;
         this.error = null;
-        this.expenses = await fetchExpenses(userId);
+        // Mock user data for now; replace with actual API call later
+        this.users = [
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+          { id: 3, name: 'Charlie' },
+        ];
+      } catch (error: any) {
+        this.error = error.message || 'Failed to fetch users';
+        console.error('Failed to fetch users:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchExpenses() {
+      try {
+        this.loading = true;
+        this.error = null;
+        this.expenses = await fetchExpenses();
       } catch (error: any) {
         this.error = error.message || 'Failed to fetch expenses';
         console.error('Failed to fetch expenses:', error);
@@ -33,7 +57,7 @@ export const useExpenseStore = defineStore('expense', {
       } catch (error: any) {
         this.error = error.message || 'Failed to add expense';
         console.error('Failed to add expense:', error);
-        throw error; // Re-throw to handle in the component
+        throw error;
       }
     },
 
@@ -48,7 +72,7 @@ export const useExpenseStore = defineStore('expense', {
       } catch (error: any) {
         this.error = error.message || 'Failed to update expense';
         console.error('Failed to update expense:', error);
-        throw error; // Re-throw to handle in the component
+        throw error;
       }
     },
 

@@ -10,6 +10,7 @@ import 'vuetify/styles'; // Import Vuetify styles
 import '@mdi/font/css/materialdesignicons.css'; // Import Material Design Icons
 import i18n from './i18n';
 import './styles/globals.css'; // Import global styles
+import { useAuthStore } from './stores/auth';
 
 const app = createApp(App);
 
@@ -26,4 +27,8 @@ app.use(pinia);
 app.use(router);
 app.use(vuetify);
 app.use(i18n);
+
+// const authStore = useAuthStore();
+// authStore.initializeAuth();
+
 app.mount('#app');

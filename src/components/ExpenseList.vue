@@ -1,3 +1,4 @@
+<!-- src/components/ExpenseList.vue -->
 <template>
   <v-card elevation="0" class="ma-4">
     <v-card-title class="headline">{{ t('expenses') }}</v-card-title>
@@ -55,13 +56,19 @@
         <template v-slot:item.amount="{ item }">
           {{ formatCurrency(item.amount) }}
         </template>
+        <template v-slot:item.sharedWith="{ item }">
+          {{ getSharedUsers(item) }}
+        </template>
+        <template v-slot:item.yourShare="{ item }">
+          {{ formatCurrency(getUserShare(item)) }}
+        </template>
         <template v-slot:item.actions="{ item }">
           <div class="d-flex align-center">
             <v-btn
               icon
               size="small"
               color="blue"
-              @click="emit('edit', item)"
+              @click="editExpense(item)"
               class="mr-1"
             >
               <v-icon size="18">mdi-pencil</v-icon>
@@ -115,19 +122,23 @@
         </v-btn>
       </template>
     </v-snackbar>
+
+    <!-- Edit Dialog -->
+    <expense-form :show="showEditDialog" :expense="selectedExpense" @update:show="showEditDialog = $event" />
   </v-card>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
+import { useExpenseStore } from '@/stores/expenseStore';
+import { useAuthStore } from '@/stores/auth';
 import type { Expense } from '@/types/expense';
 import { useI18n } from 'vue-i18n';
+import ExpenseForm from './ExpenseForm.vue';
 
-const props = defineProps<{ expenses: Expense[] }>();
-const emit = defineEmits<{
-  (e: 'edit', expense: Expense): void;
-  (e: 'delete', id: string): void;
-}>();
+// Stores
+const store = useExpenseStore();
+const authStore = useAuthStore();
 
 // Use i18n for translations
 const { t, locale } = useI18n();
@@ -143,6 +154,10 @@ const expenseToDelete = ref<Expense | null>(null);
 // Snackbar State
 const showSnackbar = ref(false);
 
+// Edit Dialog State
+const showEditDialog = ref(false);
+const selectedExpense = ref<Expense | undefined>(undefined);
+
 // Check if dark mode is enabled
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark-mode'));
 
@@ -153,12 +168,14 @@ const translatedHeaders = computed(() => [
   { title: t('date'), key: 'date' },
   { title: t('category'), key: 'category' },
   { title: t('paymentMethod'), key: 'paymentMethod' },
+  { title: t('splitWith'), key: 'sharedWith' },
+  { title: t('yourShare'), key: 'yourShare' },
   { title: t('actions'), key: 'actions', sortable: false },
 ]);
 
-// Filter expenses based on the original category values
+// Filter expenses based on category
 const filteredExpenses = computed(() => {
-  let result = props.expenses;
+  let result = store.expenses;
   if (filterCategory.value) {
     result = result.filter((exp) => exp.category === filterCategory.value);
   }
@@ -176,22 +193,57 @@ const confirmDelete = (expense: Expense) => {
   deleteDialog.value = true;
 };
 
-// Confirm and emit the delete event
-const deleteExpense = () => {
+// Confirm and delete the expense
+const deleteExpense = async () => {
   if (expenseToDelete.value && expenseToDelete.value.id) {
-    emit('delete', expenseToDelete.value.id);
-    showSnackbar.value = true; // Show snackbar on successful delete
+    await store.deleteExpense(expenseToDelete.value.id);
+    showSnackbar.value = true;
   }
   deleteDialog.value = false;
   expenseToDelete.value = null;
+};
+
+// Edit expense
+const editExpense = (expense: Expense) => {
+  selectedExpense.value = expense;
+  showEditDialog.value = true;
 };
 
 // Format the amount with the currency symbol based on the locale
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat(locale.value, {
     style: 'currency',
-    currency: 'INR', // You can make this dynamic based on user settings
+    currency: 'INR',
   }).format(value);
+};
+
+// Get shared users for display
+const getSharedUsers = (expense: Expense): string => {
+  if (!expense.sharedWith?.length) return t('noUsersSelected');
+  return expense.sharedWith
+    .map(user => `${user.name} (${user.email})`)
+    .join(', ');
+};
+
+// Get the current user's share
+const getUserShare = (expense: Expense): number => {
+  const userId = authStore.currentUser?.id || 0;
+  const userEmail = authStore.currentUser?.email || '';
+
+  // If the current user is the creator of the expense
+  if (expense.userId === userId) {
+    const totalUsers = (expense.sharedWith?.length || 0) + 1; // Include current user
+    return expense.amount / totalUsers; // Their share is the same as the shared users' share
+  }
+
+  // If the current user is a shared user
+  const sharedEntry = expense.sharedWith?.find(user => user.email === userEmail);
+  if (sharedEntry) {
+    return sharedEntry.share; // Return the share stored in sharedWith
+  }
+
+  // If the current user is neither the creator nor a shared user
+  return 0; // They have no share in this expense
 };
 </script>
 
@@ -201,6 +253,6 @@ const formatCurrency = (value: number): string => {
 }
 
 .snackbar-close-btn {
-  color: #ffffff !important; /* Ensure the "Close" button text is white for visibility */
+  color: #ffffff !important;
 }
 </style>

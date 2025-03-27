@@ -75,3 +75,8 @@ export const logout = (): void => {
   const authStore = useAuthStore();
   authStore.logout(); // Fixed to match the method in authStore.ts
 };
+
+export const validateToken = async (): Promise<User> => {
+    const response = await axiosInstance.get('/me');
+    return response.data;
+};
