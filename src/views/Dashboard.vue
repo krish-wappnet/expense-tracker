@@ -1,212 +1,272 @@
 <!-- src/components/Dashboard.vue -->
 <template>
-  <v-container fluid class="pa-6" :class="{ 'dark-mode': darkMode }">
-    <!-- Header -->
-    <v-row align="center" class="mb-4">
-      <v-col cols="12" sm="6">
-        <h1 class="display-1 font-weight-bold">{{ t('expenseTracker') }}</h1>
-      </v-col>
-      <v-col cols="12" sm="6" class="d-flex justify-sm-end align-center flex-wrap gap-2">
-        <v-btn
-          color="primary"
-          @click="showAddForm = true"
-          prepend-icon="mdi-plus"
-          elevation="2"
-          rounded
-        >
-          {{ t('addExpense') }}
-        </v-btn>
-        <v-btn color="red" outlined @click="showClearDialog = true" class="ml-2" rounded>
-          {{ t('clearAllData') }}
-        </v-btn>
-        <v-btn color="secondary" @click="store.exportExpenses" class="ml-2" rounded>
-          {{ t('export') }}
-        </v-btn>
-        <v-btn color="secondary" class="ml-2" rounded style="position: relative;">
-          {{ t('import') }}
-          <input
-            type="file"
-            @change="store.importExpenses"
-            style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;"
+  <v-container fluid class="dashboard-container" :class="{ 'dark-mode': darkMode }">
+    <!-- App Bar -->
+    <v-app-bar app flat color="transparent" class="mb-4">
+      <v-app-bar-nav-icon
+        v-if="$vuetify.display.smAndDown"
+        @click="drawer = !drawer"
+        :aria-label="t('menu')"
+      />
+      <v-toolbar-title class="display-1 font-weight-bold">
+        {{ t('expenseTracker') }}
+      </v-toolbar-title>
+      <v-spacer />
+      <v-btn
+        v-if="authStore.isAuthenticated"
+        icon
+        @click="router.push('/profile')"
+        :aria-label="t('profile')"
+        class="mr-2"
+      >
+        <v-avatar size="36">
+          <img
+            :src="authStore.currentUser?.profilePicture || 'https://via.placeholder.com/36'"
+            alt="Profile Picture"
           />
-        </v-btn>
-        <!-- Conditional Rendering for Profile and Logout Buttons -->
-        <v-btn
-          v-if="authStore.isAuthenticated"
-          icon
-          @click="router.push('/profile')"
-          class="ml-2"
-          :aria-label="t('profile')"
-        >
-          <v-avatar size="36">
-            <img
-              :src="authStore.currentUser?.profilePicture || 'https://via.placeholder.com/36'"
-              alt="Profile Picture"
-            />
-          </v-avatar>
-        </v-btn>
-        <v-btn
-          v-if="authStore.isAuthenticated"
-          color="red"
-          text
-          @click="logoutUser"
-          class="ml-2"
-          rounded
-        >
-          {{ t('logout') }}
-        </v-btn>
-        <v-btn
-          :icon="darkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waxing-crescent'"
-          class="ml-2"
-          @click="toggleDarkMode"
-          :aria-label="t('darkMode')"
-          variant="text"
-        />
-        <v-select
-          v-model="locale"
-          :items="languages"
-          item-title="name"
-          item-value="code"
-          :label="t('language')"
-          prepend-icon="mdi-earth"
-          outlined
-          class="ml-2 language-select"
-          style="max-width: 200px; min-width: 180px;"
-          :aria-label="t('language')"
-          hide-details
-        />
-      </v-col>
-    </v-row>
+        </v-avatar>
+      </v-btn>
+      <v-btn
+        :icon="darkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waxing-crescent'"
+        @click="toggleDarkMode"
+        :aria-label="t('darkMode')"
+        variant="text"
+        class="mr-2"
+      />
+      <v-select
+        v-model="locale"
+        :items="languages"
+        item-title="name"
+        item-value="code"
+        :label="t('language')"
+        prepend-icon="mdi-earth"
+        outlined
+        dense
+        class="language-select"
+        :aria-label="t('language')"
+        hide-details
+      />
+    </v-app-bar>
 
-    <!-- Summary Card with Pie Chart -->
-    <v-row class="mt-4">
-      <v-col cols="12">
-        <v-card elevation="4" class="pa-4" rounded="lg">
-          <v-card-title class="subtitle-1 font-weight-medium">{{ t('summary') }}</v-card-title>
-          <v-card-text>
-            <v-row align="center">
-              <v-col cols="12" md="6">
-                <v-row class="gap-2">
-                  <v-col cols="12" sm="4">
-                    <v-chip color="primary" label prepend-icon="mdi-format-list-bulleted">
+    <!-- Sidebar Drawer -->
+    <v-navigation-drawer
+      v-model="drawer"
+      :temporary="$vuetify.display.smAndDown"
+      :permanent="$vuetify.display.mdAndUp"
+      width="250"
+      class="sidebar"
+      :class="{ 'dark-mode': darkMode }"
+    >
+      <v-list dense>
+        <v-list-item v-if="authStore.isAuthenticated">
+          <v-btn
+            color="primary"
+            @click="showAddForm = true"
+            prepend-icon="mdi-plus"
+            elevation="2"
+            rounded
+            block
+            class="mb-2"
+          >
+            {{ t('addExpense') }}
+          </v-btn>
+        </v-list-item>
+        <v-list-item>
+          <v-btn
+            color="red"
+            outlined
+            @click="showClearDialog = true"
+            rounded
+            block
+            class="mb-2"
+          >
+            {{ t('clearAllData') }}
+          </v-btn>
+        </v-list-item>
+        <v-list-item>
+          <v-btn
+            color="secondary"
+            @click="store.exportExpenses"
+            rounded
+            block
+            class="mb-2"
+          >
+            {{ t('export') }}
+          </v-btn>
+        </v-list-item>
+        <v-list-item>
+          <v-btn color="secondary" rounded block class="mb-2" style="position: relative;">
+            {{ t('import') }}
+            <input
+              type="file"
+              @change="store.importExpenses"
+              style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;"
+            />
+          </v-btn>
+        </v-list-item>
+        <v-list-item v-if="authStore.isAuthenticated">
+          <v-btn
+            color="red"
+            text
+            @click="logoutUser"
+            rounded
+            block
+            class="mb-2"
+          >
+            {{ t('logout') }}
+          </v-btn>
+        </v-list-item>
+        <v-list-item v-else>
+          <v-btn
+            color="green"
+            text
+            @click="router.push('/login')"
+            rounded
+            block
+            class="mb-2"
+          >
+            {{ t('login') }}
+          </v-btn>
+        </v-list-item>
+        <v-list-item v-if="!authStore.isAuthenticated">
+          <v-btn
+            color="blue"
+            text
+            @click="router.push('/signup')"
+            rounded
+            block
+            class="mb-2"
+          >
+            {{ t('signup') }}
+          </v-btn>
+        </v-list-item>
+      </v-list>
+    </v-navigation-drawer>
+
+    <!-- Main Content -->
+    <v-main class="main-content">
+      <v-container fluid class="pa-4">
+        <v-row>
+          <v-col cols="12">
+            <!-- Expense List -->
+            <ExpenseList :expenses="filteredExpenses" @edit="editExpense" @delete="deleteExpense" />
+
+            <!-- Filters -->
+            <v-expansion-panels flat class="mt-4">
+              <v-expansion-panel rounded="lg">
+                <v-expansion-panel-title class="font-weight-medium">
+                  {{ t('filters') }}
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-row align="center" dense>
+                    <v-col cols="12" sm="6" md="4">
+                      <v-text-field
+                        v-model="searchQuery"
+                        :label="t('searchExpenses')"
+                        prepend-inner-icon="mdi-magnify"
+                        outlined
+                        clearable
+                        dense
+                        :aria-label="t('searchExpenses')"
+                      />
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <v-menu
+                        v-model="startDateMenu"
+                        :close-on-content-click="false"
+                        transition="scale-transition"
+                      >
+                        <template v-slot:activator="{ props }">
+                          <v-text-field
+                            v-model="startDate"
+                            :label="t('startDate')"
+                            prepend-inner-icon="mdi-calendar"
+                            readonly
+                            outlined
+                            clearable
+                            dense
+                            v-bind="props"
+                            :aria-label="t('startDate')"
+                          />
+                        </template>
+                        <v-date-picker
+                          v-model="startDateRaw"
+                          @update:modelValue="updateStartDate"
+                          :max="endDateRaw ? endDateRaw.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]"
+                          no-title
+                        />
+                      </v-menu>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <v-menu
+                        v-model="endDateMenu"
+                        :close-on-content-click="false"
+                        transition="scale-transition"
+                      >
+                        <template v-slot:activator="{ props }">
+                          <v-text-field
+                            v-model="endDate"
+                            :label="t('endDate')"
+                            prepend-inner-icon="mdi-calendar"
+                            readonly
+                            outlined
+                            clearable
+                            dense
+                            v-bind="props"
+                            :aria-label="t('endDate')"
+                          />
+                        </template>
+                        <v-date-picker
+                          v-model="endDateRaw"
+                          @update:modelValue="updateEndDate"
+                          :min="startDateRaw ? startDateRaw.toISOString().split('T')[0] : undefined"
+                          :max="new Date().toISOString().split('T')[0]"
+                          no-title
+                        />
+                      </v-menu>
+                    </v-col>
+                  </v-row>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+
+            <!-- Summary Section -->
+            <v-card elevation="4" class="pa-4 mt-6" rounded="lg">
+              <v-card-title class="subtitle-1 font-weight-medium">{{ t('summary') }}</v-card-title>
+              <v-card-text>
+                <v-row dense>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-chip color="primary" label prepend-icon="mdi-format-list-bulleted" class="mb-2">
                       {{ t('totalExpenses', { count: filteredExpenses.length }) }}
                     </v-chip>
                   </v-col>
-                  <v-col cols="12" sm="4">
-                    <v-chip color="green" label prepend-icon="mdi-currency-inr">
+                  <v-col cols="12" sm="6" md="4">
+                    <v-chip color="green" label prepend-icon="mdi-currency-inr" class="mb-2">
                       {{ t('totalAmount', { amount: totalAmount.toFixed(2) }) }}
                     </v-chip>
                   </v-col>
-                  <v-col cols="12" sm="4">
-                    <v-chip color="orange" label prepend-icon="mdi-calculator">
+                  <v-col cols="12" sm="6" md="4">
+                    <v-chip color="orange" label prepend-icon="mdi-calculator" class="mb-2">
                       {{ t('averageAmount', { amount: averageAmount.toFixed(2) }) }}
                     </v-chip>
                   </v-col>
                 </v-row>
-              </v-col>
-              <v-col cols="12" md="6">
-                <div style="height: 220px;">
-                  <Pie :data="summaryChartData" :options="summaryChartOptions" />
+              </v-card-text>
+            </v-card>
+
+            <!-- Single Chart (Expense Trend) -->
+            <v-card elevation="4" class="pa-4 mt-6" rounded="lg">
+              <v-card-title class="subtitle-1 font-weight-medium">{{ t('expenseTrend') }}</v-card-title>
+              <v-card-text>
+                <div class="chart-container">
+                  <ExpenseChart :expenses="filteredExpenses" />
                 </div>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Filters: Date Range and Search -->
-    <v-row class="mt-4">
-      <v-col cols="12">
-        <v-expansion-panels flat>
-          <v-expansion-panel rounded="lg">
-            <v-expansion-panel-title class="font-weight-medium">
-              {{ t('filters') }}
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <v-row align="center">
-                <v-col cols="12" sm="4">
-                  <v-text-field
-                    v-model="searchQuery"
-                    :label="t('searchExpenses')"
-                    prepend-inner-icon="mdi-magnify"
-                    outlined
-                    clearable
-                    background-color="white"
-                    :aria-label="t('searchExpenses')"
-                  />
-                </v-col>
-                <v-col cols="12" sm="4">
-                  <v-menu
-                    v-model="startDateMenu"
-                    :close-on-content-click="false"
-                    transition="scale-transition"
-                  >
-                    <template v-slot:activator="{ props }">
-                      <v-text-field
-                        v-model="startDate"
-                        :label="t('startDate')"
-                        prepend-inner-icon="mdi-calendar"
-                        readonly
-                        outlined
-                        clearable
-                        v-bind="props"
-                        background-color="white"
-                        :aria-label="t('startDate')"
-                      />
-                    </template>
-                    <v-date-picker
-                      v-model="startDateRaw"
-                      @update:modelValue="updateStartDate"
-                      :max="endDateRaw ? endDateRaw.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]"
-                      no-title
-                    />
-                  </v-menu>
-                </v-col>
-                <v-col cols="12" sm="4">
-                  <v-menu
-                    v-model="endDateMenu"
-                    :close-on-content-click="false"
-                    transition="scale-transition"
-                  >
-                    <template v-slot:activator="{ props }">
-                      <v-text-field
-                        v-model="endDate"
-                        :label="t('endDate')"
-                        prepend-inner-icon="mdi-calendar"
-                        readonly
-                        outlined
-                        clearable
-                        v-bind="props"
-                        background-color="white"
-                        :aria-label="t('endDate')"
-                      />
-                    </template>
-                    <v-date-picker
-                      v-model="endDateRaw"
-                      @update:modelValue="updateEndDate"
-                      :min="startDateRaw ? startDateRaw.toISOString().split('T')[0] : undefined"
-                      :max="new Date().toISOString().split('T')[0]"
-                      no-title
-                    />
-                  </v-menu>
-                </v-col>
-              </v-row>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
-      </v-col>
-    </v-row>
-
-    <!-- Expense List and Chart -->
-    <v-row class="mt-6">
-      <v-col cols="12" lg="6">
-        <ExpenseList :expenses="filteredExpenses" @edit="editExpense" @delete="deleteExpense" />
-      </v-col>
-      <v-col cols="12" lg="6">
-        <ExpenseChart :expenses="filteredExpenses" />
-      </v-col>
-    </v-row>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-main>
 
     <!-- Forms and Dialogs -->
     <ExpenseForm :show="showAddForm" @update:show="showAddForm = $event" />
@@ -242,18 +302,16 @@ import { logout } from '@/services/authService';
 import ExpenseList from '@/components/ExpenseList.vue';
 import ExpenseChart from '@/components/ExpenseChart.vue';
 import ExpenseForm from '@/components/ExpenseForm.vue';
-import { Pie } from 'vue-chartjs';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, type ChartData, type ChartOptions } from 'chart.js';
 import type { Expense } from '@/types/expense';
 import { useI18n } from 'vue-i18n';
-
-// Register Chart.js components
-ChartJS.register(ArcElement, Tooltip, Legend);
+import { useDisplay } from 'vuetify';
 
 const store = useExpenseStore();
 const authStore = useAuthStore();
 const router = useRouter();
 const { locale, t } = useI18n();
+const display = useDisplay();
+const drawer = ref(true); // Default to true for visibility
 const showAddForm = ref(false);
 const showEditForm = ref(false);
 const selectedExpense = ref<Expense | undefined>(undefined);
@@ -278,33 +336,26 @@ const languages = [
 
 // Dark Mode Handling
 onMounted(() => {
-  // Load dark mode preference from localStorage
   const savedDarkMode = localStorage.getItem('darkMode');
   darkMode.value = savedDarkMode ? JSON.parse(savedDarkMode) : false;
 
-  // Load language preference from localStorage
   const savedLanguage = localStorage.getItem('language');
   if (savedLanguage) {
     locale.value = savedLanguage;
   }
 
-  // Fetch expenses for the authenticated user
   if (authStore.isAuthenticated && authStore.currentUser) {
     store.fetchExpenses(authStore.currentUser.id).catch((error) => {
       console.error('Failed to fetch expenses:', error);
     });
   } else {
-    router.push('/login'); // Redirect to login if not authenticated
+    router.push('/login');
   }
 });
 
 const toggleDarkMode = () => {
   darkMode.value = !darkMode.value;
   localStorage.setItem('darkMode', JSON.stringify(darkMode.value));
-  // Optionally update Vuetify theme if using Vuetify's theme system
-  // if (vuetify) {
-  //   vuetify.theme.global.name.value = darkMode.value ? 'dark' : 'light';
-  // }
 };
 
 // Language Persistence
@@ -367,11 +418,11 @@ const filteredExpenses = computed(() => {
     const query = searchQuery.value.toLowerCase();
     result = result.filter((exp) =>
       [
-        exp.title.toLowerCase(), // Added title to search
+        exp.title.toLowerCase(),
         exp.category.toLowerCase(),
         exp.amount.toString(),
         exp.date.toLowerCase(),
-        exp.paymentMethod.toLowerCase(), // Added paymentMethod to search
+        exp.paymentMethod.toLowerCase(),
       ].some((field) => field.includes(query))
     );
   }
@@ -380,62 +431,32 @@ const filteredExpenses = computed(() => {
 
 // Summary Calculations
 const totalAmount = computed(() => {
-  return Number(
-    filteredExpenses.value.reduce((sum, exp) => sum + exp.amount, 0)
-  );
+  return Number(filteredExpenses.value.reduce((sum, exp) => sum + exp.amount, 0));
 });
 
 const averageAmount = computed(() =>
   filteredExpenses.value.length ? totalAmount.value / filteredExpenses.value.length : 0
 );
 
-// Pie Chart Data
-const summaryChartData = computed<ChartData<'pie'>>(() => {
-  const categoryTotals = filteredExpenses.value.reduce((acc, exp) => {
-    acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const labels = Object.keys(categoryTotals);
-  const data = Object.values(categoryTotals);
-
-  return {
-    labels: labels.length
-      ? labels.map((cat) => t(`categories.${cat.toLowerCase()}`, cat))
-      : [t('noData')],
-    datasets: [
-      {
-        data: data.length ? data : [1], // Fallback to [1] to avoid empty chart
-        backgroundColor: data.length
-          ? ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
-          : ['#E0E0E0'], // Gray color for "No Data"
-        borderColor: '#fff',
-        borderWidth: 1,
-      },
-    ],
-  };
-});
-
-const summaryChartOptions = computed<ChartOptions<'pie'>>(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'bottom',
-      labels: { color: darkMode.value ? '#fff' : '#333', font: { size: 12 } },
-    },
-    tooltip: {
-      callbacks: {
-        label: (context) => {
-          const label = context.label || '';
-          const value = context.raw as number;
-          if (label === t('noData')) return label;
-          return `${label}: ₹${value.toFixed(2)}`;
-        },
-      },
-    },
-  },
-}));
+// Removed sharedExpensesCount, highestExpense, and topCategory as they are no longer needed
+// const sharedExpensesCount = computed(() =>
+//   filteredExpenses.value.filter((exp) => exp.sharedWith && exp.sharedWith.length > 0).length
+// );
+//
+// const highestExpense = computed(() =>
+//   filteredExpenses.value.length
+//     ? Math.max(...filteredExpenses.value.map((exp) => exp.amount))
+//     : 0
+// );
+//
+// const topCategory = computed(() => {
+//   const categoryTotals = filteredExpenses.value.reduce((acc, exp) => {
+//     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+//     return acc;
+//   }, {} as Record<string, number>);
+//   const top = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+//   return top ? t(`categories.${top[0].toLowerCase()}`, top[0]) : t('noData');
+// });
 
 // Actions
 const clearAllData = () => {
@@ -463,14 +484,31 @@ const logoutUser = () => {
 </script>
 
 <style scoped>
-.gap-2 {
-  gap: 8px;
-}
-
-.v-container {
+.dashboard-container {
   background-color: #f5f5f5;
   color: #333;
   transition: background-color 0.3s ease;
+  min-height: 100vh; /* Ensure full viewport height */
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar {
+  background-color: #ffffff;
+  padding: 16px;
+  border-right: 1px solid #e0e0e0;
+  height: 100%; /* Full height of container */
+}
+
+.dark-mode .sidebar {
+  background-color: #1e1e1e;
+  border-right: 1px solid #333;
+}
+
+.main-content {
+  flex: 1; /* Take remaining space */
+  overflow-y: auto; /* Allow scrolling if content overflows */
 }
 
 .v-card,
@@ -497,22 +535,68 @@ const logoutUser = () => {
   color: #ffffff;
 }
 
-/* Fix for heading color in dark mode */
 .dark-mode h1 {
   color: #ffffff !important;
 }
 
 .language-select {
   max-width: 200px;
-  min-width: 180px;
-  font-size: 16px; /* Larger text for readability */
+  min-width: 120px;
+  font-size: 14px;
 }
 
 .language-select .v-select__selection {
-  font-size: 16px; /* Ensure selected text is readable */
+  font-size: 14px;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px; /* Fixed height for visibility */
+  width: 100%;
 }
 
 .v-snackbar {
   font-weight: medium;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+  .v-toolbar-title {
+    font-size: 1.25rem !important;
+  }
+
+  .language-select {
+    min-width: 100px;
+  }
+
+  .v-chip {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+
+  /* Improve table display on mobile */
+  .v-data-table {
+    font-size: 12px;
+  }
+
+  .v-data-table-header th {
+    padding: 4px !important;
+    font-size: 10px !important;
+  }
+
+  .v-data-table td {
+    padding: 4px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .main-content {
+    margin-left: 20px; /* Match sidebar width */
+  }
 }
 </style>

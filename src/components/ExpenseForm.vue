@@ -136,29 +136,24 @@
             <!-- Add Shared Users -->
             <h3 class="mb-2">{{ t('splitWith') }}</h3>
             <v-row>
-              <v-col cols="12" sm="5">
-                <v-text-field
-                  v-model="newSharedUser.name"
-                  :label="t('name')"
+              <v-col cols="12" sm="10">
+                <v-autocomplete
+                  v-model="selectedUser"
+                  :items="availableUsers"
+                  :label="t('selectUser')"
+                  item-title="name"
+                  item-value="id"
                   outlined
                   dense
-                  :aria-label="t('name')"
-                />
-              </v-col>
-              <v-col cols="12" sm="5">
-                <v-text-field
-                  v-model="newSharedUser.email"
-                  :label="t('email')"
-                  outlined
-                  dense
-                  :aria-label="t('email')"
+                  :aria-label="t('selectUser')"
+                  return-object
                 />
               </v-col>
               <v-col cols="12" sm="2">
                 <v-btn
                   color="primary"
                   @click="addSharedUser"
-                  :disabled="!newSharedUser.name || !newSharedUser.email"
+                  :disabled="!selectedUser"
                   block
                 >
                   {{ t('add') }}
@@ -174,7 +169,7 @@
                 class="shared-user-item"
               >
                 <v-list-item-content>
-                  <v-list-item-title>{{ user.name }} ({{ user.email }})</v-list-item-title>
+                  <v-list-item-title>{{ getUserName(user.userId) }} ({{ getUserEmail(user.userId) }})</v-list-item-title>
                 </v-list-item-content>
                 <v-list-item-action>
                   <v-btn icon color="red" @click="removeSharedUser(index)">
@@ -257,7 +252,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, reactive } from 'vue';
+import { ref, watch, computed, reactive, onMounted } from 'vue';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useAuthStore } from '@/stores/auth';
 import type { Expense } from '@/types/expense';
@@ -289,14 +284,11 @@ const form = reactive({
   category: null as Expense['category'] | null,
   paymentMethod: null as Expense['paymentMethod'] | null,
   userId: authStore.currentUser?.id || 0,
-  sharedWith: [] as { name: string; email: string; share: number }[], // Updated to store name and email
+  sharedWith: [] as { userId: string; share: number }[],
 });
 
-// Form to add a new shared user
-const newSharedUser = reactive({
-  name: '',
-  email: '',
-});
+// Selected user for adding to sharedWith
+const selectedUser = ref<any>(null);
 
 // Form References for Validation
 const formStep1 = ref<VForm | null>(null);
@@ -326,10 +318,19 @@ const categories: Array<Expense['category']> = ['Food', 'Travel', 'Shopping', 'B
 const paymentMethods: Array<Expense['paymentMethod']> = ['Cash', 'Card', 'Online'];
 const isEdit = computed(() => !!props.expense);
 
+// Use store.users instead of local users
+const availableUsers = computed(() => {
+  return store.users.filter(
+    (user) =>
+      user.id !== String(form.userId) &&
+      !form.sharedWith.some((shared) => shared.userId === user.id)
+  );
+});
+
 // Computed properties for user selection
 const sharedUsersDisplay = computed(() => {
   if (!form.sharedWith.length) return t('noUsersSelected');
-  return form.sharedWith.map(user => `${user.name} (${user.email})`).join(', ');
+  return form.sharedWith.map((user) => `${store.getUserName(user.userId)} (${store.getUserEmail(user.userId)})`).join(', ');
 });
 
 const splitAmount = computed(() => {
@@ -337,16 +338,18 @@ const splitAmount = computed(() => {
   return form.amount / totalUsers;
 });
 
+// Get user name and email from store
+const getUserName = (userId: string) => store.getUserName(userId);
+const getUserEmail = (userId: string) => store.getUserEmail(userId);
+
 // Add a shared user
 const addSharedUser = () => {
-  if (newSharedUser.name && newSharedUser.email) {
+  if (selectedUser.value) {
     form.sharedWith.push({
-      name: newSharedUser.name,
-      email: newSharedUser.email,
+      userId: String(selectedUser.value.id),
       share: 0, // Will be calculated when saving
     });
-    newSharedUser.name = '';
-    newSharedUser.email = '';
+    selectedUser.value = null;
   }
 };
 
@@ -427,6 +430,8 @@ watch(dialog, (val) => {
   emit('update:show', val);
 });
 
+
+
 // Navigate to next step after validation
 const nextStep = async (currentStep: number) => {
   let formRef: VForm | null = null;
@@ -447,7 +452,7 @@ const nextStep = async (currentStep: number) => {
 
 // Save Expense
 const saveExpense = async () => {
-  if (!authStore.currentUser) {
+  if (!authStore.getToken) { // Use getter instead of currentUser check
     snackbar.value = {
       show: true,
       message: t('notAuthenticated'),
@@ -461,7 +466,7 @@ const saveExpense = async () => {
   const sharePerUser = form.amount / totalUsers;
 
   // Update sharedWith with calculated shares
-  const sharedWith = form.sharedWith.map(user => ({
+  const sharedWith = form.sharedWith.map((user) => ({
     ...user,
     share: sharePerUser,
   }));
@@ -472,7 +477,7 @@ const saveExpense = async () => {
     date: form.date!,
     category: form.category!,
     paymentMethod: form.paymentMethod!,
-    userId: form.userId,
+    userId: Number(form.userId),
     sharedWith,
   };
 
@@ -510,6 +515,11 @@ const closeDialog = () => {
   dialog.value = false;
   emit('update:show', false);
 };
+
+// Fetch users when component mounts using store
+onMounted(() => {
+  store.fetchUsers();
+});
 </script>
 
 <style scoped>

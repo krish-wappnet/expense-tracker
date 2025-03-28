@@ -3,6 +3,7 @@
   <v-card elevation="0" class="ma-4">
     <v-card-title class="headline">{{ t('expenses') }}</v-card-title>
     <v-card-text>
+      <!-- Filters -->
       <v-row>
         <v-col cols="12" sm="4">
           <v-text-field
@@ -38,7 +39,10 @@
           </v-btn>
         </v-col>
       </v-row>
+
+      <!-- Desktop View: Table -->
       <v-data-table
+        v-if="$vuetify.display.mdAndUp"
         :headers="translatedHeaders"
         :items="filteredExpenses"
         :search="search"
@@ -46,7 +50,6 @@
         :items-per-page="5"
         :items-per-page-options="[5, 10, 20, -1]"
         class="elevation-1"
-        :mobile-breakpoint="600"
         :custom-key="{
           'items-per-page-text': t('itemsPerPage'),
           'sort-by': t('sortBy'),
@@ -86,6 +89,58 @@
           </div>
         </template>
       </v-data-table>
+
+      <!-- Mobile View: Cards -->
+      <v-row v-else>
+        <v-col cols="12" v-for="expense in filteredExpenses" :key="expense.id">
+          <v-card elevation="2" class="pa-4 mb-2">
+            <v-row dense>
+              <v-col cols="6">
+                <strong>{{ t('title') }}:</strong> {{ expense.title }}
+              </v-col>
+              <v-col cols="6" class="text-right">
+                <strong>{{ t('amount') }}:</strong> {{ formatCurrency(expense.amount) }}
+              </v-col>
+              <v-col cols="6">
+                <strong>{{ t('date') }}:</strong> {{ expense.date }}
+              </v-col>
+              <v-col cols="6" class="text-right">
+                <strong>{{ t('category') }}:</strong> {{ expense.category }}
+              </v-col>
+              <v-col cols="6">
+                <strong>{{ t('paymentMethod') }}:</strong> {{ expense.paymentMethod }}
+              </v-col>
+              <v-col cols="6" class="text-right">
+                <strong>{{ t('yourShare') }}:</strong> {{ formatCurrency(getUserShare(expense)) }}
+              </v-col>
+              <v-col cols="12">
+                <strong>{{ t('splitWith') }}:</strong> {{ getSharedUsers(expense) }}
+              </v-col>
+              <v-col cols="12" class="text-right">
+                <v-btn
+                  icon
+                  size="small"
+                  color="blue"
+                  @click="editExpense(expense)"
+                  class="mr-1"
+                >
+                  <v-icon size="18">mdi-pencil</v-icon>
+                  <v-tooltip activator="parent" location="top">{{ t('editExpense') }}</v-tooltip>
+                </v-btn>
+                <v-btn
+                  icon
+                  size="small"
+                  color="red"
+                  @click="confirmDelete(expense)"
+                >
+                  <v-icon size="18">mdi-delete</v-icon>
+                  <v-tooltip activator="parent" location="top">{{ t('deleteExpense') }}</v-tooltip>
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-card>
+        </v-col>
+      </v-row>
     </v-card-text>
 
     <!-- Delete Confirmation Dialog -->
@@ -221,7 +276,12 @@ const formatCurrency = (value: number): string => {
 const getSharedUsers = (expense: Expense): string => {
   if (!expense.sharedWith?.length) return t('noUsersSelected');
   return expense.sharedWith
-    .map(user => `${user.name} (${user.email})`)
+    .map(user => {
+      // Fallback if name or email is missing
+      const userName = user.name || 'Unknown';
+      const userEmail = user.email || 'No email';
+      return `${userName} (${userEmail})`;
+    })
     .join(', ');
 };
 
@@ -254,5 +314,20 @@ const getUserShare = (expense: Expense): number => {
 
 .snackbar-close-btn {
   color: #ffffff !important;
+}
+
+/* Card styling for mobile */
+.v-card {
+  transition: all 0.3s ease;
+}
+
+/* Ensure text in cards is readable */
+.v-card strong {
+  font-size: 14px;
+  color: #666;
+}
+
+.v-card .text-right {
+  font-size: 14px;
 }
 </style>

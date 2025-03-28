@@ -4,7 +4,6 @@ import { createI18n } from 'vue-i18n';
 const messages = {
   en: {
     // Existing translations
-
     signUp: 'Sign Up',
     login: 'Login',
     name: 'Name',
@@ -92,8 +91,6 @@ const messages = {
     profile: 'Profile',
     uploadProfilePicture: 'Upload Profile Picture',
     logout: 'Logout',
-
-   
     loginSuccess: 'Login successful! Redirecting...',
     emailRequired: 'Email is required',
     emailInvalid: 'Invalid email format',
@@ -101,20 +98,20 @@ const messages = {
     passwordTooShort: 'Password must be at least 6 characters',
     alreadyHaveAccount: 'Already have an account?',
     dontHaveAccount: 'Don’t have an account?',
-
-
     emailInUse: 'This email is already in use.',
     invalidCredentials: 'Invalid credentials.',
+    noData: 'No Data',
+    loading: 'Loading...',
 
-  
-    noData: "No Data",
-    loading: "Loading...",
-
-   
+    // Newly added translations
+    expenseTrend: 'Expense Trend', // For the chart section title
+    filters: 'Filters', // For the expansion panel title
+    error: 'Error', // Generic error message for future use
+    success: 'Success', // Generic success message for future use
+    warning: 'Warning', // Generic warning message for future use
   },
   fr: {
     // Existing translations
-
     signUp: 'S\'inscrire',
     login: 'Se connecter',
     name: 'Nom',
@@ -202,7 +199,6 @@ const messages = {
     profile: 'Profil',
     uploadProfilePicture: 'Télécharger une photo de profil',
     logout: 'Se déconnecter',
-
     loginSuccess: 'Connexion réussie ! Redirection...',
     emailRequired: 'L\'email est requis',
     emailInvalid: 'Format d\'email invalide',
@@ -210,13 +206,17 @@ const messages = {
     passwordTooShort: 'Le mot de passe doit contenir au moins 6 caractères',
     alreadyHaveAccount: 'Vous avez déjà un compte ?',
     dontHaveAccount: 'Vous n\'avez pas de compte ?',
-
-
     emailInUse: 'Cet email est déjà utilisé.',
     invalidCredentials: 'Identifiants invalides.',
+    noData: 'Aucune donnée',
+    loading: 'Chargement...',
 
-    "noData": "Aucune donnée",
-    "loading": "Chargement..."
+    // Newly added translations
+    expenseTrend: 'Tendance des dépenses', // For the chart section title
+    filters: 'Filtres', // For the expansion panel title
+    error: 'Erreur', // Generic error message for future use
+    success: 'Succès', // Generic success message for future use
+    warning: 'Avertissement', // Generic warning message for future use
   },
 };
 

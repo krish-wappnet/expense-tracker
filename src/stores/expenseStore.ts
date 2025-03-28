@@ -1,33 +1,46 @@
 // src/stores/expenseStore.ts
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
 import type { Expense } from '@/types/expense';
 import { fetchExpenses, addExpense, updateExpense, deleteExpense } from '@/services/expenseService';
+import axios from 'axios';
+import { useAuthStore } from '@/stores/auth';
 
 export interface User {
-  id: number;
+  id: string; // Consistent with your store
   name: string;
+  email?: string;
 }
 
 export const useExpenseStore = defineStore('expense', {
   state: () => ({
-    expenses: ref<Expense[]>([]),
-    users: ref<User[]>([]),
-    loading: ref(false),
-    error: ref<string | null>(null),
+    expenses: [] as Expense[],
+    users: [] as User[],
+    loading: false,
+    error: null as string | null,
   }),
 
   actions: {
     async fetchUsers() {
+      const authStore = useAuthStore();
+      if (!authStore.getToken) {
+        this.error = 'Not authenticated';
+        return;
+      }
+
       try {
         this.loading = true;
         this.error = null;
-        // Mock user data for now; replace with actual API call later
-        this.users = [
-          { id: 1, name: 'Alice' },
-          { id: 2, name: 'Bob' },
-          { id: 3, name: 'Charlie' },
-        ];
+        const response = await axios.get('http://localhost:3000/auth/users', {
+          headers: {
+            Authorization: `Bearer ${authStore.getToken}`,
+          },
+        });
+        this.users = response.data.map((user: any) => ({
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+        }));
+        console.log('Fetched users:', this.users);
       } catch (error: any) {
         this.error = error.message || 'Failed to fetch users';
         console.error('Failed to fetch users:', error);
@@ -36,14 +49,26 @@ export const useExpenseStore = defineStore('expense', {
       }
     },
 
-    async fetchExpenses() {
+    async fetchExpenses(userId: string) { // Add userId parameter
+      const authStore = useAuthStore();
+      if (!authStore.getToken) {
+        this.error = 'Not authenticated';
+        return;
+      }
+
       try {
         this.loading = true;
         this.error = null;
-        this.expenses = await fetchExpenses();
+        const response = await axios.get(`http://localhost:3000/api/expenses?userId=${userId}`, {
+          headers: {
+            Authorization: `Bearer ${authStore.getToken}`,
+          },
+        });
+        this.expenses = response.data;
       } catch (error: any) {
         this.error = error.message || 'Failed to fetch expenses';
         console.error('Failed to fetch expenses:', error);
+        throw error; // Throw to allow catching in Dashboard.vue
       } finally {
         this.loading = false;
       }
@@ -54,6 +79,7 @@ export const useExpenseStore = defineStore('expense', {
         this.error = null;
         const newExpense = await addExpense(expense);
         this.expenses.push(newExpense);
+        return newExpense;
       } catch (error: any) {
         this.error = error.message || 'Failed to add expense';
         console.error('Failed to add expense:', error);
@@ -69,6 +95,7 @@ export const useExpenseStore = defineStore('expense', {
         if (index !== -1) {
           this.expenses[index] = updatedExpense;
         }
+        return updatedExpense;
       } catch (error: any) {
         this.error = error.message || 'Failed to update expense';
         console.error('Failed to update expense:', error);
@@ -119,6 +146,17 @@ export const useExpenseStore = defineStore('expense', {
         };
         reader.readAsText(input.files[0]);
       }
+    },
+  },
+
+  getters: {
+    getUserName: (state) => (userId: string) => {
+      const user = state.users.find((u) => u.id === userId);
+      return user ? user.name : 'Unknown';
+    },
+    getUserEmail: (state) => (userId: string) => {
+      const user = state.users.find((u) => u.id === userId);
+      return user ? user.email || 'Unknown' : 'Unknown';
     },
   },
 });
