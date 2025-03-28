@@ -345,7 +345,7 @@ onMounted(() => {
   }
 
   if (authStore.isAuthenticated && authStore.currentUser) {
-    store.fetchExpenses(authStore.currentUser.id).catch((error) => {
+    store.fetchExpenses(authStore.currentUser.id.toString()).catch((error) => {
       console.error('Failed to fetch expenses:', error);
     });
   } else {

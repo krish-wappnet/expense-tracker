@@ -3,8 +3,14 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Dashboard from '@/views/Dashboard.vue';
 import SignUp from '@/components/auth/SignUp.vue';
 import Login from '@/components/auth/Login.vue';
-import Profile from '@/components/auth/Profile.vue'; // Add this
+import Profile from '@/components/auth/Profile.vue';
 import { useAuthStore } from '@/stores/auth';
+
+// Explicitly type the authStore to include initializeAuth
+interface AuthStore {
+  isAuthenticated: boolean;
+  initializeAuth: () => Promise<void>;
+}
 
 const routes = [
   {
@@ -27,12 +33,12 @@ const routes = [
     name: 'Login',
     component: Login,
   },
-  // {
-  //   path: '/profile',
-  //   name: 'Profile',
-  //   component: Profile,
-  //   meta: { requiresAuth: true },
-  // },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
@@ -40,8 +46,12 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore() as unknown as AuthStore;
+
+  // Wait for auth state to be initialized
+
+
   const isAuthenticated = authStore.isAuthenticated;
 
   if (to.meta.requiresAuth && !isAuthenticated) {

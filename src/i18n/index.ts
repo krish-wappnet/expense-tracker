@@ -109,6 +109,10 @@ const messages = {
     error: 'Error', // Generic error message for future use
     success: 'Success', // Generic success message for future use
     warning: 'Warning', // Generic warning message for future use
+
+    Actions:"Actions",
+    splitWith:"splitWith",
+    yourShare:"yourShare"
   },
   fr: {
     // Existing translations
@@ -217,6 +221,9 @@ const messages = {
     error: 'Erreur', // Generic error message for future use
     success: 'Succès', // Generic success message for future use
     warning: 'Avertissement', // Generic warning message for future use
+    Actions:"Actions",
+    splitWith:"diviser avec",
+    yourShare:"votre part"
   },
 };
 

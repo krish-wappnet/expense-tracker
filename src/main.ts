@@ -10,7 +10,6 @@ import 'vuetify/styles'; // Import Vuetify styles
 import '@mdi/font/css/materialdesignicons.css'; // Import Material Design Icons
 import i18n from './i18n';
 import './styles/globals.css'; // Import global styles
-import { useAuthStore } from './stores/auth';
 
 const app = createApp(App);
 
