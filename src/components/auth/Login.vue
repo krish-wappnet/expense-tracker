@@ -50,16 +50,17 @@
 
           <!-- Google Sign-In Button -->
           <v-btn
-            color="red"
             block
-            class="mt-4"
+            class="google-btn mt-4"
             @click="handleGoogleSignIn"
             :disabled="loading"
             :loading="loading"
           >
-            <v-icon left>mdi-google</v-icon>
-            {{ t('signInWithGoogle') }}
+            <v-icon left class="google-icon">mdi-google</v-icon>
+            {{ t('Google') }}
           </v-btn>
+
+
 
           <!-- Link to Sign Up -->
           <div class="text-center mt-4">
@@ -217,4 +218,30 @@ const handleGoogleSignIn = async () => {
 .text-h5 {
   color: #333;
 }
+.google-btn {
+  background: white;
+  color: #555;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1.5px solid #ea4335;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.google-btn:hover {
+  background: #ea4335;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(234, 67, 53, 0.3);
+}
+
+.google-icon {
+  color: #ea4335;
+  transition: color 0.3s ease;
+}
+
+.google-btn:hover .google-icon {
+  color: white;
+}
+
 </style>

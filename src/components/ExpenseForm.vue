@@ -1,14 +1,14 @@
 <!-- src/components/ExpenseForm.vue -->
 <template>
-  <v-dialog v-model="dialog" max-width="800" persistent>
-    <v-card elevation="6" class="mx-auto">
+  <v-dialog v-model="dialog" :max-width="dialogMaxWidth" persistent>
+    <v-card elevation="6" class="mx-auto expense-form-card">
       <v-card-title class="headline primary white--text py-3">
         {{ isEdit ? t('editExpense') : t('addExpense') }}
       </v-card-title>
       <v-card-text class="pt-6">
         <!-- Custom Stepper Header -->
         <v-stepper v-model="step" flat>
-          <v-stepper-header>
+          <v-stepper-header class="stepper-header">
             <v-stepper-item :value="'1'" :title="t('basicDetails')" />
             <v-divider />
             <v-stepper-item :value="'2'" :title="t('dateDetails')" />
@@ -22,35 +22,41 @@
         <!-- Step 1: Basic Details -->
         <div v-if="step === '1'">
           <v-form ref="formStep1" @submit.prevent="nextStep(1)">
-            <v-text-field
-              v-model="form.title"
-              :label="t('title')"
-              :rules="[v => !!v || t('titleRequired'), v => v.length <= 100 || t('max100Characters')]"
-              outlined
-              dense
-              required
-              autofocus
-              :aria-label="t('title')"
-            />
-            <v-text-field
-              v-model.number="form.amount"
-              :label="t('amount')"
-              type="number"
-              :rules="[v => (v !== null && v > 0) || t('amountMustBePositive')]"
-              outlined
-              dense
-              required
-              :aria-label="t('amount')"
-            />
-            <v-row class="mt-4">
-              <v-col>
-                <v-btn color="primary" type="submit" block elevation="2">
-                  {{ t('next') }}
-                </v-btn>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field
+                  v-model="form.title"
+                  :label="t('title')"
+                  :rules="[v => !!v || t('titleRequired'), v => v.length <= 100 || t('max100Characters')]"
+                  outlined
+                  dense
+                  required
+                  autofocus
+                  :aria-label="t('title')"
+                />
               </v-col>
-              <v-col>
+              <v-col cols="12">
+                <v-text-field
+                  v-model.number="form.amount"
+                  :label="t('amount')"
+                  type="number"
+                  :rules="[v => (v !== null && v > 0) || t('amountMustBePositive')]"
+                  outlined
+                  dense
+                  required
+                  :aria-label="t('amount')"
+                />
+              </v-col>
+            </v-row>
+            <v-row class="mt-4">
+              <v-col cols="12" sm="6">
                 <v-btn color="grey" text @click="closeDialog" block>
                   {{ t('cancel') }}
+                </v-btn>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-btn color="primary" type="submit" block elevation="2">
+                  {{ t('next') }}
                 </v-btn>
               </v-col>
             </v-row>
@@ -60,43 +66,47 @@
         <!-- Step 2: Date Details -->
         <div v-if="step === '2'">
           <v-form ref="formStep2" @submit.prevent="nextStep(2)">
-            <v-menu
-              v-model="fromDateMenu"
-              :close-on-content-click="false"
-              transition="scale-transition"
-              offset-y
-              min-width="auto"
-            >
-              <template v-slot:activator="{ props }">
-                <v-text-field
-                  v-model="form.date"
-                  :label="t('date')"
-                  :rules="[v => /^\d{2}-\d{2}-\d{4}$/.test(v) || t('invalidDateFormat')]"
-                  placeholder="dd-mm-yyyy"
-                  outlined
-                  dense
-                  required
-                  readonly
-                  v-bind="props"
-                  :aria-label="t('date')"
-                />
-              </template>
-              <v-date-picker
-                v-model="fromDate"
-                @update:modelValue="updateFromDate"
-                :max="new Date().toISOString().split('T')[0]"
-                no-title
-                @click:cancel="fromDateMenu = false"
-                @click:save="fromDateMenu = false"
-              />
-            </v-menu>
+            <v-row>
+              <v-col cols="12">
+                <v-menu
+                  v-model="fromDateMenu"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  offset-y
+                  min-width="auto"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      v-model="form.date"
+                      :label="t('date')"
+                      :rules="[v => /^\d{2}-\d{2}-\d{4}$/.test(v) || t('invalidDateFormat')]"
+                      placeholder="dd-mm-yyyy"
+                      outlined
+                      dense
+                      required
+                      readonly
+                      v-bind="props"
+                      :aria-label="t('date')"
+                    />
+                  </template>
+                  <v-date-picker
+                    v-model="fromDate"
+                    @update:modelValue="updateFromDate"
+                    :max="new Date().toISOString().split('T')[0]"
+                    no-title
+                    @click:cancel="fromDateMenu = false"
+                    @click:save="fromDateMenu = false"
+                  />
+                </v-menu>
+              </v-col>
+            </v-row>
             <v-row class="mt-4">
-              <v-col>
+              <v-col cols="12" sm="6">
                 <v-btn color="grey" text @click="step = '1'" block>
                   {{ t('back') }}
                 </v-btn>
               </v-col>
-              <v-col>
+              <v-col cols="12" sm="6">
                 <v-btn color="primary" type="submit" block elevation="2">
                   {{ t('next') }}
                 </v-btn>
@@ -108,35 +118,41 @@
         <!-- Step 3: Category, Payment, and User Selection -->
         <div v-if="step === '3'">
           <v-form ref="formStep3" @submit.prevent="nextStep(3)">
-            <v-select
-              v-model="form.category"
-              :items="categories.map(cat => ({ value: cat, text: t(`categories.${cat.toLowerCase()}`) }))"
-              :label="t('category')"
-              :rules="[v => !!v || t('categoryRequired')]"
-              outlined
-              dense
-              required
-              item-title="text"
-              item-value="value"
-              :aria-label="t('category')"
-            />
-            <v-select
-              v-model="form.paymentMethod"
-              :items="paymentMethods.map(method => ({ value: method, text: t(`paymentMethods.${method.toLowerCase()}`) }))"
-              :label="t('paymentMethod')"
-              :rules="[v => !!v || t('paymentMethodRequired')]"
-              outlined
-              dense
-              required
-              item-title="text"
-              item-value="value"
-              :aria-label="t('paymentMethod')"
-            />
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="form.category"
+                  :items="categories.map(cat => ({ value: cat, text: t(`categories.${cat.toLowerCase()}`) }))"
+                  :label="t('category')"
+                  :rules="[v => !!v || t('categoryRequired')]"
+                  outlined
+                  dense
+                  required
+                  item-title="text"
+                  item-value="value"
+                  :aria-label="t('category')"
+                />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="form.paymentMethod"
+                  :items="paymentMethods.map(method => ({ value: method, text: t(`paymentMethods.${method.toLowerCase()}`) }))"
+                  :label="t('paymentMethod')"
+                  :rules="[v => !!v || t('paymentMethodRequired')]"
+                  outlined
+                  dense
+                  required
+                  item-title="text"
+                  item-value="value"
+                  :aria-label="t('paymentMethod')"
+                />
+              </v-col>
+            </v-row>
 
             <!-- Add Shared Users -->
             <h3 class="mb-2">{{ t('splitWith') }}</h3>
             <v-row>
-              <v-col cols="12" sm="10">
+              <v-col cols="12" sm="9">
                 <v-autocomplete
                   v-model="selectedUser"
                   :items="availableUsers"
@@ -149,12 +165,13 @@
                   return-object
                 />
               </v-col>
-              <v-col cols="12" sm="2">
+              <v-col cols="12" sm="3">
                 <v-btn
                   color="primary"
                   @click="addSharedUser"
                   :disabled="!selectedUser"
                   block
+                  elevation="2"
                 >
                   {{ t('add') }}
                 </v-btn>
@@ -162,7 +179,7 @@
             </v-row>
 
             <!-- Display Added Shared Users -->
-            <v-list v-if="form.sharedWith.length" dense class="mt-2">
+            <v-list v-if="form.sharedWith.length" dense class="mt-2 shared-users-list">
               <v-list-item
                 v-for="(user, index) in form.sharedWith"
                 :key="index"
@@ -181,12 +198,12 @@
             <p v-else class="text-grey">{{ t('noUsersSelected') }}</p>
 
             <v-row class="mt-4">
-              <v-col>
+              <v-col cols="12" sm="6">
                 <v-btn color="grey" text @click="step = '2'" block>
                   {{ t('back') }}
                 </v-btn>
               </v-col>
-              <v-col>
+              <v-col cols="12" sm="6">
                 <v-btn color="primary" type="submit" block elevation="2">
                   {{ t('next') }}
                 </v-btn>
@@ -198,25 +215,33 @@
         <!-- Step 4: Review and Submit -->
         <div v-if="step === '4'">
           <v-form ref="formStep4" @submit.prevent="saveExpense">
-            <v-card flat class="mb-4">
+            <v-card flat class="mb-4 review-card">
               <v-card-text>
                 <h3 class="mb-2">{{ t('reviewYourExpense') }}</h3>
-                <p><strong>{{ t('title') }}:</strong> {{ form.title }}</p>
-                <p><strong>{{ t('amount') }}:</strong> {{ formatCurrency(form.amount) }}</p>
-                <p><strong>{{ t('date') }}:</strong> {{ form.date }}</p>
-                <p><strong>{{ t('category') }}:</strong> {{ form.category }}</p>
-                <p><strong>{{ t('paymentMethod') }}:</strong> {{ form.paymentMethod }}</p>
-                <p><strong>{{ t('splitWith') }}:</strong> {{ sharedUsersDisplay }}</p>
-                <p><strong>{{ t('yourShare') }}:</strong> {{ formatCurrency(splitAmount) }}</p>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <p><strong>{{ t('title') }}:</strong> {{ form.title }}</p>
+                    <p><strong>{{ t('amount') }}:</strong> {{ formatCurrency(form.amount) }}</p>
+                    <p><strong>{{ t('date') }}:</strong> {{ form.date }}</p>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <p><strong>{{ t('category') }}:</strong> {{ form.category }}</p>
+                    <p><strong>{{ t('paymentMethod') }}:</strong> {{ form.paymentMethod }}</p>
+                    <p><strong>{{ t('yourShare') }}:</strong> {{ formatCurrency(splitAmount) }}</p>
+                  </v-col>
+                  <v-col cols="12">
+                    <p><strong>{{ t('splitWith') }}:</strong> {{ sharedUsersDisplay }}</p>
+                  </v-col>
+                </v-row>
               </v-card-text>
             </v-card>
             <v-row class="mt-4">
-              <v-col>
+              <v-col cols="12" sm="6">
                 <v-btn color="grey" text @click="step = '3'" block>
                   {{ t('back') }}
                 </v-btn>
               </v-col>
-              <v-col>
+              <v-col cols="12" sm="6">
                 <v-btn color="primary" type="submit" block elevation="2" :loading="loading">
                   {{ t('submit') }}
                 </v-btn>
@@ -258,6 +283,7 @@ import { useAuthStore } from '@/stores/auth';
 import type { Expense } from '@/types/expense';
 import type { VForm } from 'vuetify/components';
 import { useI18n } from 'vue-i18n';
+import { useDisplay } from 'vuetify';
 
 // Define props and emits
 const props = defineProps<{
@@ -275,6 +301,7 @@ const dialog = ref(props.show);
 
 // Use i18n for translations
 const { t, locale } = useI18n();
+const { smAndDown, mdAndDown } = useDisplay();
 
 // Use `reactive()` for form state
 const form = reactive({
@@ -336,6 +363,13 @@ const sharedUsersDisplay = computed(() => {
 const splitAmount = computed(() => {
   const totalUsers = form.sharedWith.length + 1; // Include current user
   return form.amount / totalUsers;
+});
+
+// Responsive dialog width
+const dialogMaxWidth = computed(() => {
+  if (smAndDown.value) return '90%'; // Mobile
+  if (mdAndDown.value) return '700'; // Tablet
+  return '800'; // Laptop
 });
 
 // Get user name and email from store
@@ -430,8 +464,6 @@ watch(dialog, (val) => {
   emit('update:show', val);
 });
 
-
-
 // Navigate to next step after validation
 const nextStep = async (currentStep: number) => {
   let formRef: VForm | null = null;
@@ -452,7 +484,7 @@ const nextStep = async (currentStep: number) => {
 
 // Save Expense
 const saveExpense = async () => {
-  if (!authStore.getToken) { // Use getter instead of currentUser check
+  if (!authStore.getToken) {
     snackbar.value = {
       show: true,
       message: t('notAuthenticated'),
@@ -523,15 +555,243 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.expense-form-card {
+  border-radius: 12px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.expense-form-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.stepper-header {
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+}
+
+.v-stepper-item {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.v-divider {
+  flex: 0 0 auto;
+  margin: 0 0.5rem;
+}
+
+.v-text-field,
+.v-select,
+.v-autocomplete {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.v-btn {
+  border-radius: 8px;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.review-card {
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.shared-users-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.shared-user-item {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.5rem 0;
+}
+
 .custom-snackbar {
   transition: all 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .snackbar-close-btn {
   color: #ffffff !important;
 }
 
-.shared-user-item {
-  border-bottom: 1px solid #e0e0e0;
+/* Mobile (xs and sm) */
+@media (max-width: 959px) {
+  .expense-form-card {
+    padding: 0.5rem;
+  }
+
+  .v-card-title {
+    font-size: 1.25rem !important;
+  }
+
+  .stepper-header {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 0.5rem;
+  }
+
+  .v-stepper-item {
+    font-size: 0.75rem;
+    padding: 0.25rem;
+    min-width: 80px;
+    white-space: nowrap;
+  }
+
+  .v-divider {
+    display: none;
+  }
+
+  .v-text-field,
+  .v-select,
+  .v-autocomplete {
+    font-size: 0.875rem;
+  }
+
+  .v-btn {
+    font-size: 0.875rem;
+    padding: 0 12px;
+  }
+
+  .v-row {
+    margin: 0 -8px;
+  }
+
+  .v-col {
+    padding: 0 8px;
+  }
+
+  .shared-users-list {
+    max-height: 120px;
+  }
+
+  .review-card {
+    padding: 0.5rem;
+  }
+
+  h3 {
+    font-size: 1rem !important;
+  }
+
+  p {
+    font-size: 0.875rem;
+  }
+}
+
+/* Tablet (md) */
+@media (min-width: 960px) and (max-width: 1279px) {
+  .expense-form-card {
+    padding: 1rem;
+  }
+
+  .v-card-title {
+    font-size: 1.5rem !important;
+  }
+
+  .v-stepper-item {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    min-width: 120px;
+  }
+
+  .v-divider {
+    margin: 0 0.25rem;
+  }
+
+  .v-text-field,
+  .v-select,
+  .v-autocomplete {
+    font-size: 0.9375rem;
+  }
+
+  .v-btn {
+    font-size: 0.9375rem;
+  }
+
+  .v-row {
+    margin: 0 -12px;
+  }
+
+  .v-col {
+    padding: 0 12px;
+  }
+
+  .shared-users-list {
+    max-height: 140px;
+  }
+
+  h3 {
+    font-size: 1.125rem !important;
+  }
+
+  p {
+    font-size: 0.9375rem;
+  }
+}
+
+/* Laptop (lg and up) */
+@media (min-width: 1280px) {
+  .expense-form-card {
+    padding: 1.5rem;
+  }
+
+  .v-card-title {
+    font-size: 1.75rem !important;
+  }
+
+  .v-stepper-item {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    min-width: 150px;
+  }
+
+  .v-divider {
+    margin: 0 0.5rem;
+  }
+
+  .v-text-field,
+  .v-select,
+  .v-autocomplete {
+    font-size: 1rem;
+  }
+
+  .v-btn {
+    font-size: 1rem;
+  }
+
+  .v-row {
+    margin: 0 -16px;
+  }
+
+  .v-col {
+    padding: 0 16px;
+  }
+
+  .shared-users-list {
+    max-height: 150px;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+  }
+
+  p {
+    font-size: 1rem;
+  }
 }
 </style>
