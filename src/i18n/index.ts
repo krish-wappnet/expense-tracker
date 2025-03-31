@@ -83,7 +83,6 @@ const messages = {
       card: 'Card',
       online: 'Online',
     },
-    // New translations for enhanced UI
     language: 'Language',
     languageChanged: 'Language changed successfully',
     close: 'Close',
@@ -102,20 +101,30 @@ const messages = {
     invalidCredentials: 'Invalid credentials.',
     noData: 'No Data',
     loading: 'Loading...',
+    expenseTrend: 'Expense Trend',
+    filters: 'Filters',
+    error: 'Error',
+    success: 'Success',
+    warning: 'Warning',
+    Actions: 'Actions',
+    splitWith: 'Split With',
+    yourShare: 'Your Share',
 
-    // Newly added translations
-    expenseTrend: 'Expense Trend', // For the chart section title
-    filters: 'Filters', // For the expansion panel title
-    error: 'Error', // Generic error message for future use
-    success: 'Success', // Generic success message for future use
-    warning: 'Warning', // Generic warning message for future use
-
-    Actions:"Actions",
-    splitWith:"splitWith",
-    yourShare:"yourShare"
+    // Newly added missing keys
+    changeProfilePicture: 'Change Profile Picture',
+    remove: 'Remove',
+    phoneNumber: 'Phone Number',
+    address: 'Address',
+    about: 'About',
+    save: 'Save',
+    backToDashboard: 'Back to Dashboard',
+    editProfile: 'Edit Profile',
+    noUsersSelected: 'No Users Selected',
+    downloadChart: 'Download Chart',
+    menu: 'Menu',
   },
   fr: {
-    // Existing translations
+    // Existing translations (unchanged for brevity; add new keys here if needed)
     signUp: 'S\'inscrire',
     login: 'Se connecter',
     name: 'Nom',
@@ -195,7 +204,6 @@ const messages = {
       card: 'Carte',
       online: 'En ligne',
     },
-    // New translations for enhanced UI
     language: 'Langue',
     languageChanged: 'Langue changée avec succès',
     close: 'Fermer',
@@ -214,16 +222,14 @@ const messages = {
     invalidCredentials: 'Identifiants invalides.',
     noData: 'Aucune donnée',
     loading: 'Chargement...',
-
-    // Newly added translations
-    expenseTrend: 'Tendance des dépenses', // For the chart section title
-    filters: 'Filtres', // For the expansion panel title
-    error: 'Erreur', // Generic error message for future use
-    success: 'Succès', // Generic success message for future use
-    warning: 'Avertissement', // Generic warning message for future use
-    Actions:"Actions",
-    splitWith:"diviser avec",
-    yourShare:"votre part"
+    expenseTrend: 'Tendance des dépenses',
+    filters: 'Filtres',
+    error: 'Erreur',
+    success: 'Succès',
+    warning: 'Avertissement',
+    Actions: 'Actions',
+    splitWith: 'Diviser avec',
+    yourShare: 'Votre part',
   },
 };
 

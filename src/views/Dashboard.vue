@@ -15,19 +15,19 @@
       <v-spacer />
       <v-btn
         v-if="authStore.isAuthenticated"
-          icon
-          @click="router.push('/profile')"
-          :aria-label="t('profile')"
-          class="profile-btn mr-2"
-        >
-          <v-avatar size="40" class="elevation-2">
-            <img
-              :src="profilePic || 'https://via.placeholder.com/150'"
-              alt="Profile Picture"
-              @error="$event.target && (($event.target as HTMLImageElement).src = 'https://via.placeholder.com/150')"
-            />
-          </v-avatar>
-        </v-btn>
+        icon
+        @click="router.push('/profile')"
+        :aria-label="t('profile')"
+        class="profile-btn mr-2"
+      >
+        <v-avatar size="40" class="elevation-2">
+          <img
+            :src="profilePic || 'https://via.placeholder.com/150'"
+            alt="Profile Picture"
+            @error="$event.target && (($event.target as HTMLImageElement).src = 'https://via.placeholder.com/150')"
+          />
+        </v-avatar>
+      </v-btn>
       <v-btn
         :icon="darkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waxing-crescent'"
         @click="toggleDarkMode"
@@ -59,45 +59,39 @@
       class="sidebar"
       :class="{ 'dark-mode': darkMode }"
     >
-      <v-list dense>
-        <v-list-item v-if="authStore.isAuthenticated" class="mb-2">
+      <v-list dense class="sidebar-list">
+        <!-- Main Action Buttons -->
+        <v-list-item v-if="authStore.isAuthenticated" class="mb-3">
           <v-btn
             color="primary"
             @click="showAddForm = true"
             prepend-icon="mdi-plus"
-            elevation="2"
-            rounded
+            rounded="lg"
             block
-            class="action-btn"
+            class="sidebar-btn primary-btn"
           >
             {{ t('addExpense') }}
           </v-btn>
         </v-list-item>
-        <v-list-item class="mb-2">
+        <v-list-item class="mb-3">
           <v-btn
-            color="red"
-            outlined
-            @click="showClearDialog = true"
-            rounded
-            block
-            class="action-btn"
-          >
-            {{ t('clearAllData') }}
-          </v-btn>
-        </v-list-item>
-        <v-list-item class="mb-2">
-          <v-btn
-            color="secondary"
+            color="primary"
             @click="store.exportExpenses"
-            rounded
+            rounded="lg"
             block
-            class="action-btn"
+            class="sidebar-btn primary-btn"
           >
             {{ t('export') }}
           </v-btn>
         </v-list-item>
-        <v-list-item class="mb-2">
-          <v-btn color="secondary" rounded block class="action-btn" style="position: relative;">
+        <v-list-item class="mb-3">
+          <v-btn
+            color="primary"
+            rounded="lg"
+            block
+            class="sidebar-btn primary-btn"
+            style="position: relative;"
+          >
             {{ t('import') }}
             <input
               type="file"
@@ -106,40 +100,53 @@
             />
           </v-btn>
         </v-list-item>
-        <v-list-item v-if="authStore.isAuthenticated" class="mb-2">
+        <v-list-item v-if="!authStore.isAuthenticated" class="mb-3">
           <v-btn
-            color="red"
-            text
-            @click="logoutUser"
-            rounded
-            block
-            class="action-btn"
-          >
-            {{ t('logout') }}
-          </v-btn>
-        </v-list-item>
-        <v-list-item v-else class="mb-2">
-          <v-btn
-            color="green"
-            text
+            color="primary"
             @click="router.push('/login')"
-            rounded
+            rounded="lg"
             block
-            class="action-btn"
+            class="sidebar-btn primary-btn"
           >
             {{ t('login') }}
           </v-btn>
         </v-list-item>
-        <v-list-item v-if="!authStore.isAuthenticated" class="mb-2">
+        <v-list-item v-if="!authStore.isAuthenticated" class="mb-3">
           <v-btn
-            color="blue"
-            text
+            color="primary"
             @click="router.push('/signup')"
-            rounded
+            rounded="lg"
             block
-            class="action-btn"
+            class="sidebar-btn primary-btn"
           >
             {{ t('signup') }}
+          </v-btn>
+        </v-list-item>
+
+        <!-- Spacer and Secondary Actions -->
+        <v-divider v-if="authStore.isAuthenticated" class="my-4 sidebar-divider" />
+        <v-list-item v-if="authStore.isAuthenticated" class="mb-3">
+          <v-btn
+            color="grey"
+            variant="outlined"
+            @click="showClearDialog = true"
+            rounded="lg"
+            block
+            class="sidebar-btn secondary-btn"
+          >
+            {{ t('clearAllData') }}
+          </v-btn>
+        </v-list-item>
+        <v-list-item v-if="authStore.isAuthenticated" class="mb-3">
+          <v-btn
+            color="grey"
+            variant="outlined"
+            @click="logoutUser"
+            rounded="lg"
+            block
+            class="sidebar-btn secondary-btn"
+          >
+            {{ t('logout') }}
           </v-btn>
         </v-list-item>
       </v-list>
@@ -259,15 +266,29 @@
               </v-card-text>
             </v-card>
 
-            <!-- Single Chart (Expense Trend) -->
-            <v-card elevation="4" class="pa-6 mt-6" rounded="lg">
-              <v-card-title class="text-h6 font-weight-medium">{{ t('expenseTrend') }}</v-card-title>
-              <v-card-text>
-                <div class="chart-container">
-                  <ExpenseChart :expenses="filteredExpenses" />
-                </div>
-              </v-card-text>
-            </v-card>
+            <!-- Centered Chart Section -->
+            <v-row justify="center" class="mt-6">
+              <v-col cols="12" md="8" lg="6">
+                <v-card elevation="4" class="pa-6 chart-card" rounded="lg">
+                  <v-card-title class="text-h6 font-weight-medium text-center">
+                    {{ t('expenseTrend') }}
+                  </v-card-title>
+                  <v-card-text>
+                    <v-progress-circular
+                      v-if="!filteredExpenses.length"
+                      indeterminate
+                      color="primary"
+                      class="mx-auto d-block"
+                    />
+                    <transition name="fade">
+                      <div v-if="filteredExpenses.length" class="chart-container">
+                        <ExpenseChart :expenses="filteredExpenses" />
+                      </div>
+                    </transition>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
       </v-container>
@@ -282,8 +303,8 @@
         <v-card-text>{{ t('clearAllDataMessage') }}</v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn color="grey" text @click="showClearDialog = false">{{ t('cancel') }}</v-btn>
-          <v-btn color="red" text @click="clearAllData">{{ t('clear') }}</v-btn>
+          <v-btn color="grey" variant="text" @click="showClearDialog = false">{{ t('cancel') }}</v-btn>
+          <v-btn color="red" variant="text" @click="clearAllData">{{ t('clear') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -311,7 +332,6 @@ import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 import { db } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-
 
 // Initialize stores and router
 const store = useExpenseStore();
@@ -365,15 +385,12 @@ onMounted(async () => {
     await authStore.initializeAuth();
     if (authStore.isAuthenticated && authStore.currentUser) {
       await store.fetchExpenses();
-      
-      // Fetch profile picture from Firestore
       const userId = authStore.currentUser.id;
       const userDocRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const data = userDoc.data();
         profilePic.value = data.profilePicture || null;
-        // Sync authStore if needed
         if (authStore.currentUser) {
           authStore.currentUser.profilePicture = profilePic.value || undefined;
         }
@@ -493,13 +510,12 @@ const deleteExpense = async (id: string) => {
 const logoutUser = async () => {
   try {
     await authStore.logout();
-    profilePic.value = null; // Reset profile picture on logout
+    profilePic.value = null;
     router.push('/login');
   } catch (error) {
     console.error('Logout failed:', error);
   }
 };
-
 </script>
 
 <style scoped>
@@ -515,20 +531,86 @@ const logoutUser = async () => {
 
 .app-bar {
   background: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06) !important;
   padding: 0 16px;
+  border-radius: 0 0 12px 12px;
 }
 
 .sidebar {
   background-color: #ffffff;
-  padding: 20px;
+  padding: 24px 16px;
   border-right: 1px solid #e0e0e0;
   height: 100%;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
 }
 
 .dark-mode .sidebar {
   background-color: #1e1e1e;
   border-right: 1px solid #333;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-list {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-btn {
+  height: 48px !important;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  transition: all 0.3s ease;
+}
+
+.primary-btn {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--v-theme-primary), var(--v-theme-primary-darken-1));
+  color: white !important;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, var(--v-theme-primary-darken-1), var(--v-theme-primary));
+}
+
+.secondary-btn {
+  background: transparent;
+  color: var(--v-theme-grey-darken-1) !important;
+  border: 1px solid var(--v-theme-grey-darken-1);
+}
+
+.secondary-btn:hover {
+  background: rgba(var(--v-theme-grey-darken-1), 0.1);
+  transform: translateY(-2px);
+}
+
+.dark-mode .primary-btn {
+  background: linear-gradient(135deg, var(--v-theme-primary-darken-1), var(--v-theme-primary));
+}
+
+.dark-mode .primary-btn:hover {
+  background: linear-gradient(135deg, var(--v-theme-primary), var(--v-theme-primary-darken-1));
+}
+
+.dark-mode .secondary-btn {
+  color: var(--v-theme-grey-lighten-1) !important;
+  border: 1px solid var(--v-theme-grey-lighten-1);
+}
+
+.dark-mode .secondary-btn:hover {
+  background: rgba(var(--v-theme-grey-lighten-1), 0.2);
+}
+
+.sidebar-divider {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.dark-mode .sidebar-divider {
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .main-content {
@@ -540,8 +622,17 @@ const logoutUser = async () => {
 .v-chip,
 .v-text-field {
   background-color: #ffffff;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, box-shadow 0.2s ease;
   border-radius: 12px;
+}
+
+.chart-card {
+  transition: transform 0.3s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .dark-mode {
@@ -550,6 +641,7 @@ const logoutUser = async () => {
 
 .dark-mode .app-bar {
   background: #1e1e1e !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
 .dark-mode .v-card,
@@ -586,27 +678,33 @@ const logoutUser = async () => {
   font-size: 14px;
 }
 
-.language-select .v-select__selection {
-  font-size: 14px;
-}
-
-.action-btn {
-  height: 48px !important;
-  font-size: 0.95rem;
-  letter-spacing: 0.5px;
-  text-transform: none;
-}
-
 .summary-chip {
   font-size: 1rem;
   padding: 0 16px;
   height: 40px;
+  transition: transform 0.2s ease;
+}
+
+.summary-chip:hover {
+  transform: scale(1.05);
 }
 
 .chart-container {
   position: relative;
   height: 350px;
   width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .v-snackbar {
@@ -623,7 +721,7 @@ const logoutUser = async () => {
     min-width: 100px;
   }
 
-  .action-btn {
+  .sidebar-btn {
     height: 40px !important;
     font-size: 0.875rem;
   }
@@ -637,34 +735,11 @@ const logoutUser = async () => {
   .chart-container {
     height: 250px;
   }
-
-  .v-data-table {
-    font-size: 12px;
-  }
-
-  .v-data-table-header th {
-    padding: 4px !important;
-    font-size: 10px !important;
-  }
-
-  .v-data-table td {
-    padding: 4px !important;
-    font-size: 12px !important;
-  }
 }
 
 @media (min-width: 960px) {
   .main-content {
     margin-left: 20px;
   }
-}
-
-.profile-btn .v-avatar {
-  border: 3px solid #e0e0e0; /* Matches Profile.vue */
-  transition: transform 0.2s ease;
-}
-
-.profile-btn:hover .v-avatar {
-  transform: scale(1.1);
 }
 </style>

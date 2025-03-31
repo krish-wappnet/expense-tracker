@@ -1,6 +1,6 @@
 <!-- src/components/auth/Profile.vue -->
 <template>
-  <v-container class="profile-container">
+  <v-container fluid class="profile-container" :class="{ 'dark-mode': darkMode }">
     <v-row justify="center">
       <v-col cols="12" sm="10" md="9" lg="8">
         <!-- Header with Back Button -->
@@ -11,14 +11,13 @@
               color="primary"
               @click="goToDashboard"
               :aria-label="t('backToDashboard')"
+              class="back-btn"
             >
               <v-icon>mdi-arrow-left</v-icon>
             </v-btn>
           </v-col>
           <v-col>
-            <h1 class="text-h3 font-weight-medium">
-              {{ t('profile') }}
-            </h1>
+            <h1 class="text-h3 font-weight-medium">{{ t('profile') }}</h1>
           </v-col>
         </v-row>
 
@@ -32,7 +31,7 @@
         />
 
         <!-- Profile Card -->
-        <v-card v-else rounded="lg" elevation="3" class="pa-6 pa-sm-8 profile-card">
+        <v-card v-else rounded="lg" elevation="4" class="pa-6 pa-sm-8 profile-card">
           <v-row>
             <!-- Profile Picture Column -->
             <v-col cols="12" sm="4" md="3" class="text-center">
@@ -42,8 +41,8 @@
                   alt="Profile Picture"
                 />
               </v-avatar>
-              <div v-if="isEditing" class="mb-6">
-                <v-btn color="primary" outlined class="mb-3" block>
+              <div v-if="isEditing" class="profile-pic-actions">
+                <v-btn color="primary" class="mb-3" block rounded="lg" style="position: relative;">
                   {{ t('changeProfilePicture') }}
                   <input
                     type="file"
@@ -55,8 +54,9 @@
                 <v-btn
                   v-if="tempProfilePic || profilePic"
                   color="error"
-                  outlined
+                  variant="outlined"
                   block
+                  rounded="lg"
                   @click="removeProfilePicture"
                 >
                   {{ t('remove') }}
@@ -68,7 +68,7 @@
             <v-col cols="12" sm="8" md="9">
               <!-- Display Mode -->
               <div v-if="!isEditing" class="profile-details">
-                <v-row>
+                <v-row dense>
                   <v-col cols="12" sm="6" class="mb-4">
                     <div class="detail-item">
                       <v-icon left color="primary" class="mr-3">mdi-email</v-icon>
@@ -115,13 +115,13 @@
                     </div>
                   </v-col>
                 </v-row>
-                <v-row>
-                  <v-col cols="12" class="text-right">
+                <v-row justify="end">
+                  <v-col cols="12" sm="auto">
                     <v-btn
                       color="primary"
                       class="edit-profile-btn"
-                      rounded
-                      large
+                      rounded="lg"
+                      size="large"
                       @click="isEditing = true"
                     >
                       <v-icon left>mdi-pencil</v-icon>
@@ -133,7 +133,7 @@
 
               <!-- Edit Mode -->
               <v-form v-else ref="form" @submit.prevent="updateProfile" class="edit-form">
-                <v-row>
+                <v-row dense>
                   <v-col cols="12" sm="6">
                     <v-text-field
                       :label="t('email')"
@@ -163,7 +163,7 @@
                       prepend-inner-icon="mdi-phone"
                       outlined
                       dense
-                      :rules="[v => !v || /^\+?[1-9]\d{1,14}$/.test(v) || t('phoneInvalid')]"
+                      :rules="phoneRules"
                       class="rounded-lg"
                     />
                   </v-col>
@@ -191,14 +191,14 @@
                     />
                   </v-col>
                 </v-row>
-                <v-row class="mt-6">
+                <v-row justify="center" class="mt-6">
                   <v-col cols="12" sm="6" md="3" class="mb-3 mb-sm-0">
                     <v-btn
                       color="grey"
-                      outlined
+                      variant="outlined"
                       block
-                      rounded
-                      large
+                      rounded="lg"
+                      size="large"
                       @click="cancelEdit"
                     >
                       {{ t('cancel') }}
@@ -209,8 +209,8 @@
                       color="primary"
                       type="submit"
                       block
-                      rounded
-                      large
+                      rounded="lg"
+                      size="large"
                       :loading="loading"
                     >
                       {{ t('save') }}
@@ -234,7 +234,7 @@
     >
       {{ snackbarMessage }}
       <template v-slot:actions>
-        <v-btn color="white" text @click="snackbar = false">
+        <v-btn color="white" variant="text" @click="snackbar = false">
           {{ t('close') }}
         </v-btn>
       </template>
@@ -247,7 +247,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useI18n } from 'vue-i18n';
-import { useDisplay } from 'vuetify';
+import { useDisplay, useTheme } from 'vuetify';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { deleteField } from 'firebase/firestore';
@@ -258,6 +258,7 @@ const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 const { smAndDown, mdAndDown } = useDisplay();
+const theme = useTheme();
 
 // Form reference
 const form = ref<VForm | null>(null);
@@ -286,21 +287,29 @@ const snackbar = ref(false);
 const snackbarMessage = ref('');
 const snackbarColor = ref('success');
 
+// Dark mode state
+const darkMode = computed(() => theme.global.current.value.dark);
+
 // Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Computed properties for responsive design
 const avatarSize = computed(() => {
-  if (smAndDown.value) return '120'; // Mobile
-  if (mdAndDown.value) return '150'; // Tablet
-  return '180'; // Laptop
+  if (smAndDown.value) return '120';
+  if (mdAndDown.value) return '150';
+  return '180';
 });
 
 const textareaRows = computed(() => {
-  if (smAndDown.value) return 3; // Mobile
-  return 4; // Tablet and Laptop
+  if (smAndDown.value) return 3;
+  return 4;
 });
+
+// Phone number validation rules
+const phoneRules = [
+  (v: string) => !v || /^\d{10}$/.test(v) || t('phoneInvalid'), // Optional, must be 10 digits if provided
+];
 
 // Fetch user profile on mount
 onMounted(async () => {
@@ -309,10 +318,7 @@ onMounted(async () => {
     return;
   }
 
-  // Set initial user data
   email.value = authStore.currentUser.email || '';
-
-  // Fetch profile data from Firestore
   try {
     const userId = authStore.currentUser.id;
     const userDocRef = doc(db, 'users', userId);
@@ -326,7 +332,6 @@ onMounted(async () => {
       about.value = data.about || '';
       profilePic.value = data.profilePicture || null;
 
-      // Set temp values for editing
       tempName.value = name.value;
       tempPhoneNumber.value = phoneNumber.value;
       tempAddress.value = address.value;
@@ -348,12 +353,12 @@ const handleProfilePictureChange = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files[0]) {
     const file = input.files[0];
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       showSnackbar(t('fileTooLarge'), 'error');
       return;
     }
     tempProfilePicFile.value = file;
-    tempProfilePic.value = URL.createObjectURL(file); // Preview the new image
+    tempProfilePic.value = URL.createObjectURL(file);
   }
 };
 
@@ -375,7 +380,7 @@ const uploadToCloudinary = async (file: File): Promise<string> => {
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
       formData
     );
-    return response.data.secure_url; // Return the secure URL of the uploaded image
+    return response.data.secure_url;
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
     throw new Error('Failed to upload image to Cloudinary');
@@ -392,19 +397,16 @@ const updateProfile = async () => {
 
   try {
     loading.value = true;
-
     const userId = authStore.currentUser?.id;
     if (!userId) throw new Error('User ID not available');
 
-    // Upload new profile picture to Cloudinary if selected
     let newProfilePicUrl: string | null = profilePic.value;
     if (tempProfilePicFile.value) {
       newProfilePicUrl = await uploadToCloudinary(tempProfilePicFile.value);
     } else if (tempProfilePic.value === null && profilePic.value !== null) {
-      newProfilePicUrl = null; // User removed the profile picture
+      newProfilePicUrl = null;
     }
 
-    // Prepare the update data
     const updateData: { [key: string]: any } = {
       displayName: tempName.value,
       phoneNumber: tempPhoneNumber.value,
@@ -412,25 +414,21 @@ const updateProfile = async () => {
       about: tempAbout.value,
     };
 
-    // Only include profilePicture in the update if it’s explicitly changed
     if (newProfilePicUrl === null) {
-      updateData.profilePicture = deleteField(); // Remove the field from Firestore
+      updateData.profilePicture = deleteField();
     } else if (newProfilePicUrl) {
       updateData.profilePicture = newProfilePicUrl;
     }
 
-    // Update user data in Firestore
     const userDocRef = doc(db, 'users', userId);
     await updateDoc(userDocRef, updateData);
 
-    // Update local state
     name.value = tempName.value;
     phoneNumber.value = tempPhoneNumber.value;
     address.value = tempAddress.value;
     about.value = tempAbout.value;
     profilePic.value = newProfilePicUrl;
 
-    // Update authStore if necessary
     if (authStore.currentUser) {
       authStore.currentUser.displayName = tempName.value;
       authStore.currentUser.profilePicture = newProfilePicUrl || undefined;
@@ -476,21 +474,51 @@ const showSnackbar = (message: string, color: string) => {
 <style scoped>
 .profile-container {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff; /* Pure white background */
-  padding: 1.5rem;
+  background: #f7f9fc;
+  padding: 2rem;
+  transition: background-color 0.3s ease;
+}
+
+.dark-mode.profile-container {
+  background: #121212;
 }
 
 .profile-card {
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.dark-mode .profile-card {
+  background: #1e1e1e;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .profile-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 
 .profile-avatar {
   border: 3px solid #e0e0e0;
+  transition: transform 0.3s ease;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.05);
+}
+
+.profile-pic-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 200px;
+  margin: 0 auto;
 }
 
 .profile-details {
@@ -501,6 +529,7 @@ const showSnackbar = (message: string, color: string) => {
   display: flex;
   align-items: flex-start;
   word-break: break-word;
+  margin-bottom: 1rem;
 }
 
 .detail-content {
@@ -520,16 +549,36 @@ const showSnackbar = (message: string, color: string) => {
   font-size: 1.1rem;
 }
 
+.dark-mode .detail-label {
+  color: #bbb;
+}
+
+.dark-mode .detail-value {
+  color: #fff;
+}
+
 .edit-form .v-text-field,
 .edit-form .v-textarea {
   background-color: #fafafa;
   border-radius: 8px;
   margin-bottom: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.dark-mode .edit-form .v-text-field,
+.dark-mode .edit-form .v-textarea {
+  background-color: #2a2a2a;
+  color: #fff;
 }
 
 .v-text-field[readonly] {
   background-color: #f5f5f5;
   color: #444;
+}
+
+.dark-mode .v-text-field[readonly] {
+  background-color: #333;
+  color: #ccc;
 }
 
 .v-btn {
@@ -538,21 +587,35 @@ const showSnackbar = (message: string, color: string) => {
   font-weight: 500;
   letter-spacing: 0.5px;
   padding: 0 20px;
+  transition: all 0.3s ease;
+}
+
+.v-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .edit-profile-btn {
-  background-color: #1976d2 !important; /* Vuetify primary color */
+  background: linear-gradient(135deg, var(--v-theme-primary), var(--v-theme-primary-darken-1));
   color: white !important;
   padding: 0 24px;
   height: 48px;
+}
+
+.back-btn {
+  background: rgba(var(--v-theme-primary), 0.1);
 }
 
 .text-h3 {
   color: #333;
 }
 
+.dark-mode .text-h3 {
+  color: #fff;
+}
+
 /* Responsive Design */
-@media (max-width: 599px) { /* xs */
+@media (max-width: 599px) {
   .profile-container {
     padding: 1rem;
   }
@@ -570,25 +633,12 @@ const showSnackbar = (message: string, color: string) => {
     min-height: 40px;
   }
 
-  .v-col {
-    padding: 6px;
-  }
-
-  .detail-value {
-    font-size: 0.95rem;
-  }
-
-  .detail-label {
-    font-size: 0.9rem;
-  }
-
-  .edit-profile-btn {
-    height: 40px;
-    padding: 0 16px;
+  .profile-pic-actions {
+    max-width: 150px;
   }
 }
 
-@media (min-width: 600px) and (max-width: 959px) { /* sm */
+@media (min-width: 600px) and (max-width: 959px) {
   .profile-container {
     padding: 1.5rem;
   }
@@ -600,17 +650,9 @@ const showSnackbar = (message: string, color: string) => {
   .text-h3 {
     font-size: 1.75rem;
   }
-
-  .v-btn {
-    font-size: 0.9375rem;
-  }
-
-  .v-col {
-    padding: 8px;
-  }
 }
 
-@media (min-width: 960px) and (max-width: 1263px) { /* md */
+@media (min-width: 960px) and (max-width: 1263px) {
   .profile-container {
     padding: 2rem;
   }
@@ -624,7 +666,7 @@ const showSnackbar = (message: string, color: string) => {
   }
 }
 
-@media (min-width: 1264px) { /* lg and up */
+@media (min-width: 1264px) {
   .profile-container {
     padding: 2.5rem;
   }
