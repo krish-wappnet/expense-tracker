@@ -53,7 +53,7 @@
                   />
                 </v-btn>
                 <v-btn
-                  v-if="tempProfilePic"
+                  v-if="tempProfilePic || profilePic"
                   color="red"
                   outlined
                   @click="removeProfilePicture"
@@ -118,7 +118,7 @@
               </div>
 
               <!-- Edit Mode -->
-              <v-form v-else @submit.prevent="updateProfile">
+              <v-form v-else ref="form" @submit.prevent="updateProfile">
                 <v-row>
                   <v-col cols="12">
                     <v-text-field
@@ -150,6 +150,7 @@
                       outlined
                       dense
                       :rows="textareaRows"
+                      :rules="[v => (v ? v.length <= 500 : true) || t('aboutTooLong')]"
                       class="rounded-lg"
                     />
                   </v-col>
@@ -208,31 +209,30 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
-
-// Explicitly type the authStore to include initializeAuth
-interface AuthStore {
-  currentUser: { id: number; email: string; profilePicture?: string } | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  initializeAuth: () => Promise<void>;
-  logout: () => void;
-}
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/firebase';
+import { deleteField } from 'firebase/firestore';
+import type { VForm } from 'vuetify/components';
+import axios from 'axios';
 
 const { t } = useI18n();
 const router = useRouter();
-const authStore = useAuthStore() as unknown as AuthStore;
+const authStore = useAuthStore();
 const { smAndDown, mdAndDown } = useDisplay();
+
+// Form reference
+const form = ref<VForm | null>(null);
 
 // Reactive state for user data
 const email = ref('');
 const name = ref('');
 const about = ref('');
-const profilePic = ref<string | undefined>(undefined);
+const profilePic = ref<string | null>(null);
 
 // Temporary state for editing
 const tempName = ref('');
 const tempAbout = ref('');
-const tempProfilePic = ref<string | undefined>(undefined);
+const tempProfilePic = ref<string | null>(null);
 const tempProfilePicFile = ref<File | null>(null);
 
 // UI state
@@ -243,8 +243,9 @@ const snackbar = ref(false);
 const snackbarMessage = ref('');
 const snackbarColor = ref('success');
 
-// API base URL
-const API_BASE_URL = 'http://localhost:3000';
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Computed properties for responsive design
 const avatarSize = computed(() => {
@@ -265,37 +266,28 @@ onMounted(async () => {
     return;
   }
 
-  
-
-  if (!authStore.isAuthenticated || !authStore.currentUser) {
-    router.push('/login');
-    return;
-  }
-
   // Set initial user data
   email.value = authStore.currentUser.email;
 
-  // Fetch profile data from API
+  // Fetch profile data from Firestore
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-      headers: {
-        Authorization: `Bearer ${authStore.token}`,
-      },
-    });
+    const userId = authStore.currentUser.id;
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch profile');
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      name.value = data.displayName || '';
+      about.value = data.about || '';
+      profilePic.value = data.profilePicture || null;
+
+      // Set temp values for editing
+      tempName.value = name.value;
+      tempAbout.value = about.value;
+      tempProfilePic.value = null;
+    } else {
+      throw new Error('User document does not exist');
     }
-
-    const data = await response.json();
-    name.value = data.name || '';
-    about.value = data.about || '';
-    profilePic.value = data.profilePic || authStore.currentUser.profilePicture;
-
-    // Set temp values for editing
-    tempName.value = name.value;
-    tempAbout.value = about.value;
-    tempProfilePic.value = undefined; // Ensure tempProfilePic starts as undefined
   } catch (error) {
     console.error('Error fetching user profile:', error);
     showSnackbar(t('fetchProfileFailed'), 'error');
@@ -309,59 +301,90 @@ const handleProfilePictureChange = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files[0]) {
     const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      showSnackbar(t('fileTooLarge'), 'error');
+      return;
+    }
     tempProfilePicFile.value = file;
     tempProfilePic.value = URL.createObjectURL(file); // Preview the new image
   }
 };
 
 // Remove profile picture
-const removeProfilePicture = () => {
-  tempProfilePic.value = undefined;
+const removeProfilePicture = async () => {
+  // Since we're using Cloudinary, we won't delete the image from Cloudinary here
+  // We'll just set the profilePic to null and update Firestore
+  profilePic.value = null;
+  tempProfilePic.value = null;
   tempProfilePicFile.value = null;
+};
+
+// Upload image to Cloudinary
+const uploadToCloudinary = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  try {
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      formData
+    );
+    return response.data.secure_url; // Return the secure URL of the uploaded image
+  } catch (error) {
+    console.error('Error uploading to Cloudinary:', error);
+    throw new Error('Failed to upload image to Cloudinary');
+  }
 };
 
 // Update profile
 const updateProfile = async () => {
-  if (!tempName.value) {
-    showSnackbar(t('nameRequired'), 'error');
+  const validation = await form.value?.validate();
+  if (!validation?.valid) {
+    showSnackbar(t('formIncomplete'), 'error');
     return;
   }
 
   try {
     loading.value = true;
 
-    // Prepare FormData for the PUT request
-    const formData = new FormData();
-    formData.append('name', tempName.value);
-    formData.append('about', tempAbout.value);
-    formData.append('email', email.value);
+    const userId = authStore.currentUser?.id;
+    if (!userId) throw new Error('User ID not available');
+
+    // Upload new profile picture to Cloudinary if selected
+    let newProfilePicUrl: string | null = profilePic.value;
     if (tempProfilePicFile.value) {
-      formData.append('profilePic', tempProfilePicFile.value);
+      newProfilePicUrl = await uploadToCloudinary(tempProfilePicFile.value);
+    } else if (tempProfilePic.value === null && profilePic.value !== null) {
+      newProfilePicUrl = null; // User removed the profile picture
     }
 
-    // Update profile data via API
-    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${authStore.token}`,
-      },
-      body: formData,
-    });
+    // Prepare the update data
+    const updateData: { [key: string]: any } = {
+      displayName: tempName.value,
+      about: tempAbout.value,
+    };
 
-    if (!response.ok) {
-      throw new Error('Failed to update profile');
+    // Only include profilePicture in the update if it's not undefined
+    if (newProfilePicUrl === null) {
+      updateData.profilePicture = deleteField(); // Remove the field from Firestore
+    } else if (newProfilePicUrl !== undefined) {
+      updateData.profilePicture = newProfilePicUrl;
     }
 
-    const data = await response.json();
+    // Update user data in Firestore
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, updateData);
 
     // Update local state
-    name.value = data.name;
-    about.value = data.about;
-    profilePic.value = data.profilePic;
+    name.value = tempName.value;
+    about.value = tempAbout.value;
+    profilePic.value = newProfilePicUrl;
 
     // Update authStore if necessary
     if (authStore.currentUser) {
-      authStore.currentUser.profilePicture = data.profilePic;
+      authStore.currentUser.displayName = tempName.value;
+      authStore.currentUser.profilePicture = newProfilePicUrl || undefined;
     }
 
     showSnackbar(t('profileUpdated'), 'success');
@@ -372,7 +395,7 @@ const updateProfile = async () => {
   } finally {
     loading.value = false;
     tempProfilePicFile.value = null;
-    tempProfilePic.value = undefined;
+    tempProfilePic.value = null;
   }
 };
 
@@ -381,8 +404,9 @@ const cancelEdit = () => {
   isEditing.value = false;
   tempName.value = name.value;
   tempAbout.value = about.value;
-  tempProfilePic.value = undefined;
+  tempProfilePic.value = null;
   tempProfilePicFile.value = null;
+  form.value?.resetValidation();
 };
 
 // Navigate to dashboard
@@ -404,7 +428,7 @@ const showSnackbar = (message: string, color: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff; /* Plain white background */
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   padding: 1rem;
 }
 

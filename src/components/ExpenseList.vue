@@ -179,17 +179,24 @@
     </v-snackbar>
 
     <!-- Edit Dialog -->
-    <expense-form :show="showEditDialog" :expense="selectedExpense" @update:show="showEditDialog = $event" />
+    <expense-form
+      :show="showEditDialog"
+      :expense="selectedExpense"
+      @update:show="updateEditDialog"
+      @expense-saved="handleExpenseSaved"
+    />
   </v-card>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useAuthStore } from '@/stores/auth';
 import type { Expense } from '@/types/expense';
 import { useI18n } from 'vue-i18n';
 import ExpenseForm from './ExpenseForm.vue';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/firebase';
 
 // Stores
 const store = useExpenseStore();
@@ -212,6 +219,21 @@ const showSnackbar = ref(false);
 // Edit Dialog State
 const showEditDialog = ref(false);
 const selectedExpense = ref<Expense | undefined>(undefined);
+
+// Fetch users to map userId to name
+const users = ref<{ id: string; displayName?: string }[]>([]);
+const fetchUsers = async () => {
+  try {
+    const usersCollection = collection(db, 'users');
+    const querySnapshot = await getDocs(usersCollection);
+    users.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      displayName: doc.data().displayName || '',
+    }));
+  } catch (error: any) {
+    console.error('Error fetching users:', error);
+  }
+};
 
 // Check if dark mode is enabled
 const isDarkMode = computed(() => document.documentElement.classList.contains('dark-mode'));
@@ -252,6 +274,8 @@ const confirmDelete = (expense: Expense) => {
 const deleteExpense = async () => {
   if (expenseToDelete.value && expenseToDelete.value.id) {
     await store.deleteExpense(expenseToDelete.value.id);
+    // Update the store directly after deletion
+    store.expenses = store.expenses.filter(exp => exp.id !== expenseToDelete.value!.id);
     showSnackbar.value = true;
   }
   deleteDialog.value = false;
@@ -262,6 +286,27 @@ const deleteExpense = async () => {
 const editExpense = (expense: Expense) => {
   selectedExpense.value = expense;
   showEditDialog.value = true;
+};
+
+// Handle expense saved event
+const handleExpenseSaved = (expense: Expense) => {
+  const index = store.expenses.findIndex(e => e.id === expense.id);
+  if (index !== -1) {
+    // Update existing expense
+    store.expenses[index] = expense;
+  } else {
+    // Add new expense
+    store.expenses.push(expense);
+  }
+};
+
+// Update edit dialog state
+const updateEditDialog = (value: boolean) => {
+  showEditDialog.value = value;
+  if (!value) {
+    selectedExpense.value = undefined; // Clear selected expense
+    // No need to call store.fetchExpenses() here since handleExpenseSaved updates the store
+  }
 };
 
 // Format the amount with the currency symbol based on the locale
@@ -277,34 +322,43 @@ const getSharedUsers = (expense: Expense): string => {
   if (!expense.sharedWith?.length) return t('noUsersSelected');
   return expense.sharedWith
     .map(user => {
-      // Fallback if name or email is missing
       const userName = user.name || 'Unknown';
-      const userEmail = user.email || 'No email';
-      return `${userName} (${userEmail})`;
+      return userName;
     })
     .join(', ');
 };
 
 // Get the current user's share
 const getUserShare = (expense: Expense): number => {
-  const userId = authStore.currentUser?.id || 0;
-  const userEmail = authStore.currentUser?.email || '';
+  const userId = authStore.currentUser?.id || '';
 
-  // If the current user is the creator of the expense
   if (expense.userId === userId) {
-    const totalUsers = (expense.sharedWith?.length || 0) + 1; // Include current user
-    return expense.amount / totalUsers; // Their share is the same as the shared users' share
+    const totalUsers = (expense.sharedWith?.length || 0) + 1;
+    return expense.amount / totalUsers;
   }
 
-  // If the current user is a shared user
-  const sharedEntry = expense.sharedWith?.find(user => user.email === userEmail);
+  const sharedEntry = expense.sharedWith?.find(user => user.userId === userId);
   if (sharedEntry) {
-    return sharedEntry.share; // Return the share stored in sharedWith
+    return sharedEntry.share;
   }
 
-  // If the current user is neither the creator nor a shared user
-  return 0; // They have no share in this expense
+  return 0;
 };
+
+// Fetch expenses on mount
+onMounted(() => {
+  fetchUsers();
+  store.fetchExpenses();
+});
+
+// Refresh expenses when the user changes
+watch(
+  () => authStore.currentUser,
+  () => {
+    fetchUsers();
+    store.fetchExpenses();
+  }
+);
 </script>
 
 <style scoped>
@@ -316,12 +370,10 @@ const getUserShare = (expense: Expense): number => {
   color: #ffffff !important;
 }
 
-/* Card styling for mobile */
 .v-card {
   transition: all 0.3s ease;
 }
 
-/* Ensure text in cards is readable */
 .v-card strong {
   font-size: 14px;
   color: #666;

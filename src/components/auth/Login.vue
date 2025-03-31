@@ -1,16 +1,13 @@
-<!-- src/components/Login.vue -->
 <template>
   <v-container fluid class="fill-height login-container">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
         <v-card class="pa-6 login-card" elevation="8">
-          <!-- Logo/Icon -->
           <div class="text-center mb-4">
             <v-icon size="64" color="primary">mdi-login</v-icon>
             <h1 class="text-h5 font-weight-bold mt-2">{{ t('login') }}</h1>
           </div>
 
-          <!-- Form -->
           <v-form @submit.prevent="handleLogin">
             <v-text-field
               v-model="form.email"
@@ -48,7 +45,6 @@
             </v-btn>
           </v-form>
 
-          <!-- Google Sign-In Button -->
           <v-btn
             block
             class="google-btn mt-4"
@@ -60,9 +56,6 @@
             {{ t('Sign in with Google') }}
           </v-btn>
 
-
-
-          <!-- Link to Sign Up -->
           <div class="text-center mt-4">
             <span>{{ t('dontHaveAccount') }}</span>
             <v-btn text color="primary" @click="router.push('/signup')">
@@ -73,7 +66,6 @@
       </v-col>
     </v-row>
 
-    <!-- Snackbar for feedback -->
     <v-snackbar
       v-model="snackbar.show"
       :timeout="3000"
@@ -94,7 +86,6 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { login } from '@/services/authService';
 import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
@@ -124,16 +115,10 @@ const handleLogin = async () => {
   loading.value = true;
   errors.value = { email: '', password: '' };
 
-  if (!form.value.email) {
-    errors.value.email = t('emailRequired');
-  } else if (!/\S+@\S+\.\S+/.test(form.value.email)) {
-    errors.value.email = t('emailInvalid');
-  }
-  if (!form.value.password) {
-    errors.value.password = t('passwordRequired');
-  } else if (form.value.password.length < 6) {
-    errors.value.password = t('passwordTooShort');
-  }
+  if (!form.value.email) errors.value.email = t('emailRequired');
+  else if (!/\S+@\S+\.\S+/.test(form.value.email)) errors.value.email = t('emailInvalid');
+  if (!form.value.password) errors.value.password = t('passwordRequired');
+  else if (form.value.password.length < 6) errors.value.password = t('passwordTooShort');
 
   if (Object.values(errors.value).some((error) => error)) {
     loading.value = false;
@@ -147,23 +132,13 @@ const handleLogin = async () => {
       message: t('loginSuccess'),
       color: 'success',
     };
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 1000);
+    setTimeout(() => router.push('/dashboard'), 1000);
   } catch (error: any) {
-    let errorMessage = t('loginFailed');
-    if (error.message) errorMessage = error.message;
-    else if (error.response?.status === 401) errorMessage = t('invalidCredentials');
     snackbar.value = {
       show: true,
-      message: errorMessage,
+      message: error.message || t('loginFailed'),
       color: 'error',
     };
-    if (error.response?.data?.errors) {
-      const serverErrors = error.response.data.errors;
-      errors.value.email = serverErrors.email || '';
-      errors.value.password = serverErrors.password || '';
-    }
   } finally {
     loading.value = false;
   }
@@ -172,15 +147,13 @@ const handleLogin = async () => {
 const handleGoogleSignIn = async () => {
   loading.value = true;
   try {
-    await authStore.loginWithGoogle(); // Call without arguments
+    await authStore.loginWithGoogle();
     snackbar.value = {
       show: true,
       message: t('loginSuccess'),
       color: 'success',
     };
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 1000);
+    setTimeout(() => router.push('/dashboard'), 1000);
   } catch (error: any) {
     snackbar.value = {
       show: true,
@@ -192,6 +165,7 @@ const handleGoogleSignIn = async () => {
   }
 };
 </script>
+
 <style scoped>
 .login-container {
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);

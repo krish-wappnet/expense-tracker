@@ -24,6 +24,17 @@
               class="mb-2"
             />
             <v-text-field
+              v-model="form.displayName"
+              :label="t('displayName')"
+              type="text"
+              outlined
+              dense
+              required
+              prepend-inner-icon="mdi-account"
+              :error-messages="errors.displayName"
+              class="mb-2"
+            />
+            <v-text-field
               v-model="form.password"
               :label="t('password')"
               :type="showPassword ? 'text' : 'password'"
@@ -77,21 +88,24 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, defineExpose } from 'vue'; // Add defineExpose
+import { ref, defineExpose } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { signUp } from '@/services/authService';
+import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
 const router = useRouter();
+const authStore = useAuthStore();
 
 const form = ref({
   email: '',
+  displayName: '',
   password: '',
 });
 
 const errors = ref({
   email: '',
+  displayName: '',
   password: '',
 });
 
@@ -106,13 +120,18 @@ const snackbar = ref({
 
 const handleSignUp = async () => {
   loading.value = true;
-  errors.value = { email: '', password: '' };
+  errors.value = { email: '', displayName: '', password: '' };
 
   // Basic validation
   if (!form.value.email) {
     errors.value.email = t('emailRequired');
   } else if (!/\S+@\S+\.\S+/.test(form.value.email)) {
     errors.value.email = t('emailInvalid');
+  }
+  if (!form.value.displayName) {
+    errors.value.displayName = t('displayNameRequired');
+  } else if (form.value.displayName.length > 50) {
+    errors.value.displayName = t('displayNameTooLong');
   }
   if (!form.value.password) {
     errors.value.password = t('passwordRequired');
@@ -126,35 +145,31 @@ const handleSignUp = async () => {
   }
 
   try {
-    const response = await signUp(form.value);
+    await authStore.signUp(form.value.email, form.value.password, form.value.displayName);
     snackbar.value = {
       show: true,
-      message: response.message, // Use the backend's message
+      message: t('signupSuccess'),
       color: 'success',
     };
     setTimeout(() => {
-      router.push('/login'); // Navigate to login instead of dashboard
+      router.push('/dashboard');
     }, 1000);
   } catch (error: any) {
-    if (error.response?.status === 409) {
-      // Handle ConflictException (email already in use)
-      snackbar.value = {
-        show: true,
-        message: error.response.data.message || t('emailInUse'),
-        color: 'error',
-      };
-    } else {
-      snackbar.value = {
-        show: true,
-        message: error.response?.data?.message || t('signUpFailed'),
-        color: 'error',
-      };
+    let message = t('signUpFailed');
+    if (error.code === 'auth/email-already-in-use') {
+      message = t('emailInUse');
+    } else if (error.code === 'auth/invalid-email') {
+      message = t('emailInvalid');
+    } else if (error.code === 'auth/weak-password') {
+      message = t('passwordTooShort');
+    } else if (error.message) {
+      message = error.message;
     }
-    if (error.response?.data?.errors) {
-      const serverErrors = error.response.data.errors;
-      errors.value.email = serverErrors.email || '';
-      errors.value.password = serverErrors.password || '';
-    }
+    snackbar.value = {
+      show: true,
+      message,
+      color: 'error',
+    };
   } finally {
     loading.value = false;
   }

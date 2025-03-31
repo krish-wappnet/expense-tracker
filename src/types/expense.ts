@@ -1,13 +1,15 @@
 // src/types/expense.ts
+// src/types/expense.ts
 export interface Expense {
   id: string;
   title: string;
   amount: number;
-  date: string;
+  date: string; // dd-mm-yyyy
   category: 'Food' | 'Travel' | 'Shopping' | 'Bills' | 'Others';
   paymentMethod: 'Cash' | 'Card' | 'Online';
-  userId: number;
-  sharedWith: { userId: string; share: number }[];
+  userId: string;
+  sharedWith: { userId: string; name: string; share: number }[];
+  createdAt?: string; // ISO string
 }
 
 export interface SharedUser {
