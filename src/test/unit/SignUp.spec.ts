@@ -1,171 +1,199 @@
-import { mount } from "@vue/test-utils";
-import SignUp from "../../components/auth/SignUp.vue";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useRouter } from "vue-router";
-import { signUp } from "@/services/authService";
-import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
-import type { DefineComponent, ComponentOptionsMixin, PublicProps, ComponentProvideOptions, ComponentPublicInstance } from "vue";
+// tests/unit/SignUp.spec.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, VueWrapper } from '@vue/test-utils'
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import { createRouter, createWebHistory } from 'vue-router'
+import { defineComponent } from 'vue'
+import SignUp from '@/components/SignUp.vue'
+import { useAuthStore } from '@/stores/auth'
 
-// Mock ResizeObserver before imports
-global.ResizeObserver = class ResizeObserver {
-  callback: ResizeObserverCallback;
-  constructor(callback: ResizeObserverCallback) {
-    this.callback = callback;
+// Mock messages for i18n
+const messages = {
+  en: {
+    signUp: 'Sign Up',
+    email: 'Email',
+    displayName: 'Display Name',
+    password: 'Password',
+    emailRequired: 'Email is required',
+    emailInvalid: 'Email is invalid',
+    displayNameRequired: 'Display name is required',
+    signupSuccess: 'Sign up successful',
+    signUpFailed: 'Sign up failed',
   }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
-// Type definition for SignUp.vue instance
-interface SignUpInstance extends ComponentPublicInstance {
-  loading: boolean;
-  snackbar: { show: boolean; message: string; color: string };
 }
 
-// Create Vuetify instance for testing
-const vuetify = createVuetify({ components, directives });
+// Define interface for auth store with mocked signUp
+interface AuthStore {
+  signUp: vi.Mock<[string, string, string], Promise<any>> // Changed Vi.Mock to vi.Mock
+}
 
-// Mock Vue Router
-vi.mock("vue-router", () => ({
-  useRouter: vi.fn(() => ({
-    push: vi.fn(),
-  })),
-}));
+// Define interface for SignUp component instance
+interface SignUpInstance {
+  loading: boolean
+  snackbar: {
+    show: boolean
+    message: string
+    color: string
+  }
+  $nextTick: () => Promise<void>
+}
 
-// Mock API service
-vi.mock("@/services/authService", () => ({
-  signUp: vi.fn(),
-}));
+// Dummy component for testing routes
+const DummyComponent = defineComponent({
+  render: () => null
+})
 
-// Mock vue-i18n
-vi.mock("vue-i18n", () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}));
+describe('SignUp.vue', () => {
+  let wrapper: VueWrapper<SignUpInstance>
+  let vuetify: ReturnType<typeof createVuetify>
+  let pinia: ReturnType<typeof createPinia>
+  let i18n: ReturnType<typeof createI18n>
+  let router: ReturnType<typeof createRouter>
+  let authStore: AuthStore
 
-describe("SignUp.vue", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    // Setup Vuetify
+    vuetify = createVuetify({
+      components,
+      directives,
+    })
 
-  const mountWithVuetify = (
-    component: DefineComponent<
-      {},
-      {},
-      {},
-      {},
-      {},
-      ComponentOptionsMixin,
-      ComponentOptionsMixin,
-      {},
-      string,
-      PublicProps,
-      Readonly<{}> & Readonly<{}>,
-      {},
-      {},
-      {},
-      {},
-      string,
-      ComponentProvideOptions,
-      true,
-      {},
-      any
-    >
-  ) =>
-    mount(component, {
+    // Setup Pinia
+    pinia = createPinia()
+    setActivePinia(pinia)
+    authStore = useAuthStore() as unknown as AuthStore
+
+    // Mock auth store
+    authStore.signUp = vi.fn()
+
+    // Setup i18n
+    i18n = createI18n({
+      legacy: false,
+      locale: 'en',
+      messages,
+    })
+
+    // Setup router with proper RouteRecordRaw
+    router = createRouter({
+      history: createWebHistory(),
+      routes: [
+        { path: '/login', name: 'login', component: DummyComponent },
+        { path: '/dashboard', name: 'dashboard', component: DummyComponent },
+      ],
+    })
+    router.push = vi.fn()
+
+    // Mount component
+    wrapper = mount(SignUp, {
       global: {
-        plugins: [vuetify],
+        plugins: [vuetify, pinia, i18n, router],
       },
-    });
+    }) as VueWrapper<SignUpInstance>
+  })
 
-  it("renders the signup form correctly", () => {
-    const wrapper = mountWithVuetify(SignUp);
-    expect(wrapper.find("h1").text()).toBe("signUp");
-    expect(wrapper.find("input[type='email']").exists()).toBe(true);
-    expect(wrapper.find("input[type='password']").exists()).toBe(true);
-    expect(wrapper.find("button[type='submit']").text()).toContain("signUp");
-  });
+  // Test 1: Component Rendering
+  it('renders signup form correctly', () => {
+    expect(wrapper.find('.signup-container').exists()).toBe(true)
+    expect(wrapper.find('h1').text()).toBe('Sign Up')
+    expect(wrapper.findAll('input').length).toBe(3) // email, displayName, password
+    expect(wrapper.find('button[type="submit"]').text()).toBe('Sign Up')
+  })
 
-  it("shows validation errors when submitting empty form", async () => {
-    const wrapper = mountWithVuetify(SignUp);
-    await wrapper.find("form").trigger("submit.prevent");
-    await wrapper.vm.$nextTick();
+  // Test 2: Form Fields
+  it('displays form fields with correct labels', () => {
+    const inputs = wrapper.findAll('.v-text-field')
+    expect(inputs[0].find('.v-label').text()).toBe('Email')
+    expect(inputs[1].find('.v-label').text()).toBe('Display Name')
+    expect(inputs[2].find('.v-label').text()).toBe('Password')
+  })
 
-    const emailField = wrapper.findComponent({ name: "v-text-field" }).vm;
-    const passwordField = wrapper.findAllComponents({ name: "v-text-field" })[1].vm;
-    expect(emailField.errorMessages).toContain("emailRequired");
-    expect(passwordField.errorMessages).toContain("passwordRequired");
-  });
+  // Test 3: Password Visibility Toggle
+  it('toggles password visibility', async () => {
+    const passwordField = wrapper.findAll('.v-text-field')[2]
+    const input = passwordField.find('input')
+    const toggleIcon = passwordField.find('.mdi-eye')
 
-  it("disables button when loading", async () => {
-    const wrapper = mountWithVuetify(SignUp);
-    (wrapper.vm as unknown as SignUpInstance).loading = true;
-    await wrapper.vm.$nextTick();
-    const button = wrapper.find("button[type='submit']");
-    expect((button.element as HTMLButtonElement).disabled).toBe(true);
-  });
+    expect(input.attributes('type')).toBe('password')
+    await toggleIcon.trigger('click')
+    expect(input.attributes('type')).toBe('text')
+    await toggleIcon.trigger('click')
+    expect(input.attributes('type')).toBe('password')
+  })
 
-  it("shows an error when email is invalid", async () => {
-    const wrapper = mountWithVuetify(SignUp);
-    await wrapper.find("input[type='email']").setValue("invalid-email");
-    await wrapper.find("form").trigger("submit.prevent");
-    await wrapper.vm.$nextTick();
+  // Test 4: Form Validation
+  it('shows validation errors on empty submit', async () => {
+    const form = wrapper.find('form')
+    await form.trigger('submit.prevent')
+    
+    expect(wrapper.findAll('.v-messages__message').length).toBe(3)
+    expect(wrapper.text()).toContain('Email is required')
+    expect(wrapper.text()).toContain('Display name is required')
+    expect(wrapper.text()).toContain('Password is required')
+  })
 
-    const emailField = wrapper.findComponent({ name: "v-text-field" }).vm;
-    expect(emailField.errorMessages).toContain("emailInvalid");
-  });
+  // Test 5: Email Validation
+  it('validates email format', async () => {
+    await wrapper.findAll('input')[0].setValue('invalid-email')
+    await wrapper.find('form').trigger('submit.prevent')
+    expect(wrapper.text()).toContain('Email is invalid')
+  })
 
-  it("calls signUp API when form is valid", async () => {
-    const mockSignUp = signUp as ReturnType<typeof vi.fn>;
-    mockSignUp.mockResolvedValue({ message: "Signup Successful" });
+  // Test 6: Successful Signup
+  it('handles successful signup', async () => {
+    authStore.signUp.mockResolvedValueOnce({})
+    
+    await wrapper.findAll('input')[0].setValue('test@example.com')
+    await wrapper.findAll('input')[1].setValue('TestUser')
+    await wrapper.findAll('input')[2].setValue('password123')
+    await wrapper.find('form').trigger('submit.prevent')
 
-    const wrapper = mountWithVuetify(SignUp);
-    await wrapper.find("input[type='email']").setValue("test@example.com");
-    await wrapper.find("input[type='password']").setValue("password123");
-    await wrapper.find("form").trigger("submit.prevent");
-    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick()
+    expect(authStore.signUp).toHaveBeenCalledWith(
+      'test@example.com',
+      'password123',
+      'TestUser'
+    )
+    expect(wrapper.vm.snackbar.show).toBe(true)
+    expect(wrapper.vm.snackbar.message).toBe('Sign up successful')
+    expect(wrapper.vm.snackbar.color).toBe('success')
+  })
 
-    expect(signUp).toHaveBeenCalledWith({
-      email: "test@example.com",
-      password: "password123",
-    });
-  });
+  // Test 7: Failed Signup
+  it('handles signup failure', async () => {
+    authStore.signUp.mockRejectedValueOnce({ code: 'auth/email-already-in-use' })
+    
+    await wrapper.findAll('input')[0].setValue('existing@example.com')
+    await wrapper.findAll('input')[1].setValue('TestUser')
+    await wrapper.findAll('input')[2].setValue('password123')
+    await wrapper.find('form').trigger('submit.prevent')
 
-  it("displays success message on successful signup", async () => {
-    const mockSignUp = signUp as ReturnType<typeof vi.fn>;
-    mockSignUp.mockResolvedValue({ message: "Signup Successful" });
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.snackbar.show).toBe(true)
+    expect(wrapper.vm.snackbar.color).toBe('error')
+  })
 
-    const wrapper = mountWithVuetify(SignUp);
-    await wrapper.find("input[type='email']").setValue("test@example.com");
-    await wrapper.find("input[type='password']").setValue("password123");
-    await wrapper.find("form").trigger("submit.prevent");
-    await wrapper.vm.$nextTick();
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    await wrapper.vm.$nextTick();
+  // Test 8: Loading State
+  it('shows loading state during signup', async () => {
+    authStore.signUp.mockImplementation(() => new Promise(() => {})) // Never resolves
+    
+    const submitBtn = wrapper.find('button[type="submit"]')
+    await wrapper.findAll('input')[0].setValue('test@example.com')
+    await wrapper.findAll('input')[1].setValue('TestUser')
+    await wrapper.findAll('input')[2].setValue('password123')
+    await wrapper.find('form').trigger('submit.prevent')
 
-    const snackbar = wrapper.findComponent({ name: "v-snackbar" });
-    expect(snackbar.vm.modelValue).toBe(true);
-    expect((wrapper.vm as unknown as SignUpInstance).snackbar.message).toContain("Signup Successful");
-  });
+    expect(wrapper.vm.loading).toBe(true)
+    expect(submitBtn.attributes('disabled')).toBeDefined()
+  })
 
-  it("displays error message on signup failure", async () => {
-    const mockSignUp = signUp as ReturnType<typeof vi.fn>;
-    mockSignUp.mockRejectedValue({ response: { data: { message: "Signup failed" } } });
-
-    const wrapper = mountWithVuetify(SignUp);
-    await wrapper.find("input[type='email']").setValue("test@example.com");
-    await wrapper.find("input[type='password']").setValue("password123");
-    await wrapper.find("form").trigger("submit.prevent");
-    await wrapper.vm.$nextTick();
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    await wrapper.vm.$nextTick();
-
-    const snackbar = wrapper.findComponent({ name: "v-snackbar" });
-    expect(snackbar.vm.modelValue).toBe(true);
-    expect((wrapper.vm as unknown as SignUpInstance).snackbar.message).toContain("Signup failed");
-  });
-});
+  // Test 9: Login Link
+  it('navigates to login page when clicking login link', async () => {
+    const loginLink = wrapper.find('button[color="primary"]')
+    await loginLink.trigger('click')
+    expect(router.push).toHaveBeenCalledWith('/login')
+  })
+})

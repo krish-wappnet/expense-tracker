@@ -1,7 +1,7 @@
 // src/stores/expenseStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
 import type { Expense } from '@/types/expense';
 import { useAuthStore } from './auth';
@@ -9,17 +9,22 @@ import { useAuthStore } from './auth';
 export const useExpenseStore = defineStore('expense', () => {
   const authStore = useAuthStore();
   const expenses = ref<Expense[]>([]);
+  let unsubscribe: (() => void) | null = null;
 
   // Fetch expenses from Firestore
-  const fetchExpenses = async () => {
+  const fetchExpenses = () => {
     if (!authStore.currentUser?.id) return;
+    
     try {
       const expensesCollection = collection(db, 'users', authStore.currentUser.id, 'expenses');
-      const querySnapshot = await getDocs(expensesCollection);
-      expenses.value = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Expense[];
+
+      // Subscribe to Firestore updates
+      unsubscribe = onSnapshot(expensesCollection, (snapshot) => {
+        expenses.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Expense[];
+      });
     } catch (error: any) {
       console.error('Error fetching expenses:', error);
     }

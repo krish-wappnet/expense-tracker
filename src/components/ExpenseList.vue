@@ -1,21 +1,25 @@
 <!-- src/components/ExpenseList.vue -->
 <template>
-  <v-card elevation="0" class="ma-4">
-    <v-card-title class="headline">{{ t('expenses') }}</v-card-title>
-    <v-card-text>
+  <v-card elevation="4" class="ma-4 expense-list-card" rounded="lg">
+    <v-card-title class="text-h5 font-weight-bold primary--text">
+      {{ t('expenses') }}
+    </v-card-title>
+    <v-card-text class="pt-4">
       <!-- Filters -->
       <v-row>
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="6" md="4">
           <v-text-field
             v-model="search"
             :label="t('searchByTitle')"
             outlined
             dense
             clearable
+            prepend-inner-icon="mdi-magnify"
+            class="rounded-lg"
             :aria-label="t('searchByTitle')"
           />
         </v-col>
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="6" md="4">
           <v-select
             v-model="filterCategory"
             :items="categories.map(cat => ({ value: cat, text: t(`categories.${cat.toLowerCase()}`) }))"
@@ -23,17 +27,21 @@
             outlined
             dense
             clearable
+            prepend-inner-icon="mdi-filter"
+            class="rounded-lg"
             :aria-label="t('filterByCategory')"
             item-title="text"
             item-value="value"
           />
         </v-col>
-        <v-col cols="12" sm="4" class="d-flex align-center">
+        <v-col cols="12" sm="6" md="4" class="d-flex align-center">
           <v-btn
-            color="grey"
-            text
+            color="grey darken-1"
+            outlined
+            rounded
             @click="clearFilters"
             :disabled="!search && !filterCategory"
+            class="clear-filters-btn"
           >
             {{ t('clearFilters') }}
           </v-btn>
@@ -49,7 +57,7 @@
         :sort-by="[{ key: 'date', order: 'desc' }]"
         :items-per-page="5"
         :items-per-page-options="[5, 10, 20, -1]"
-        class="elevation-1"
+        class="elevation-2 expense-table"
         :custom-key="{
           'items-per-page-text': t('itemsPerPage'),
           'sort-by': t('sortBy'),
@@ -57,33 +65,34 @@
         }"
       >
         <template v-slot:item.amount="{ item }">
-          {{ formatCurrency(item.amount) }}
+          <span class="font-weight-medium">{{ formatCurrency(item.amount) }}</span>
         </template>
         <template v-slot:item.sharedWith="{ item }">
-          {{ getSharedUsers(item) }}
+          <span class="text-grey-darken-1">{{ getSharedUsers(item) }}</span>
         </template>
         <template v-slot:item.yourShare="{ item }">
-          {{ formatCurrency(getUserShare(item)) }}
+          <span class="font-weight-medium primary--text">{{ formatCurrency(getUserShare(item)) }}</span>
         </template>
         <template v-slot:item.actions="{ item }">
           <div class="d-flex align-center">
             <v-btn
               icon
               size="small"
-              color="blue"
+              color="primary"
               @click="editExpense(item)"
-              class="mr-1"
+              class="mr-2 action-btn"
             >
-              <v-icon size="18">mdi-pencil</v-icon>
+              <v-icon size="20">mdi-pencil</v-icon>
               <v-tooltip activator="parent" location="top">{{ t('editExpense') }}</v-tooltip>
             </v-btn>
             <v-btn
               icon
               size="small"
-              color="red"
+              color="error"
               @click="confirmDelete(item)"
+              class="action-btn"
             >
-              <v-icon size="18">mdi-delete</v-icon>
+              <v-icon size="20">mdi-trash-can</v-icon>
               <v-tooltip activator="parent" location="top">{{ t('deleteExpense') }}</v-tooltip>
             </v-btn>
           </div>
@@ -93,47 +102,55 @@
       <!-- Mobile View: Cards -->
       <v-row v-else>
         <v-col cols="12" v-for="expense in filteredExpenses" :key="expense.id">
-          <v-card elevation="2" class="pa-4 mb-2">
+          <v-card elevation="3" class="pa-4 mb-3 expense-card" rounded="lg">
             <v-row dense>
               <v-col cols="6">
-                <strong>{{ t('title') }}:</strong> {{ expense.title }}
+                <div class="label">{{ t('title') }}</div>
+                <div class="value font-weight-medium">{{ expense.title }}</div>
               </v-col>
               <v-col cols="6" class="text-right">
-                <strong>{{ t('amount') }}:</strong> {{ formatCurrency(expense.amount) }}
+                <div class="label">{{ t('amount') }}</div>
+                <div class="value font-weight-medium">{{ formatCurrency(expense.amount) }}</div>
               </v-col>
               <v-col cols="6">
-                <strong>{{ t('date') }}:</strong> {{ expense.date }}
+                <div class="label">{{ t('date') }}</div>
+                <div class="value">{{ expense.date }}</div>
               </v-col>
               <v-col cols="6" class="text-right">
-                <strong>{{ t('category') }}:</strong> {{ expense.category }}
+                <div class="label">{{ t('category') }}</div>
+                <div class="value">{{ t(`categories.${expense.category.toLowerCase()}`) }}</div>
               </v-col>
               <v-col cols="6">
-                <strong>{{ t('paymentMethod') }}:</strong> {{ expense.paymentMethod }}
+                <div class="label">{{ t('paymentMethod') }}</div>
+                <div class="value">{{ expense.paymentMethod }}</div>
               </v-col>
               <v-col cols="6" class="text-right">
-                <strong>{{ t('yourShare') }}:</strong> {{ formatCurrency(getUserShare(expense)) }}
+                <div class="label">{{ t('yourShare') }}</div>
+                <div class="value font-weight-medium primary--text">{{ formatCurrency(getUserShare(expense)) }}</div>
               </v-col>
               <v-col cols="12">
-                <strong>{{ t('splitWith') }}:</strong> {{ getSharedUsers(expense) }}
+                <div class="label">{{ t('splitWith') }}</div>
+                <div class="value text-grey-darken-1">{{ getSharedUsers(expense) }}</div>
               </v-col>
-              <v-col cols="12" class="text-right">
+              <v-col cols="12" class="text-right mt-2">
                 <v-btn
                   icon
                   size="small"
-                  color="blue"
+                  color="primary"
                   @click="editExpense(expense)"
-                  class="mr-1"
+                  class="mr-2 action-btn"
                 >
-                  <v-icon size="18">mdi-pencil</v-icon>
+                  <v-icon size="20">mdi-pencil</v-icon>
                   <v-tooltip activator="parent" location="top">{{ t('editExpense') }}</v-tooltip>
                 </v-btn>
                 <v-btn
                   icon
                   size="small"
-                  color="red"
+                  color="error"
                   @click="confirmDelete(expense)"
+                  class="action-btn"
                 >
-                  <v-icon size="18">mdi-delete</v-icon>
+                  <v-icon size="20">mdi-trash-can</v-icon>
                   <v-tooltip activator="parent" location="top">{{ t('deleteExpense') }}</v-tooltip>
                 </v-btn>
               </v-col>
@@ -145,13 +162,13 @@
 
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="deleteDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">{{ t('confirmDeletion') }}</v-card-title>
-        <v-card-text v-html="t('confirmDeleteMessage', { title: expenseToDelete?.title })" />
+      <v-card rounded="lg">
+        <v-card-title class="text-h6 font-weight-bold">{{ t('confirmDeletion') }}</v-card-title>
+        <v-card-text v-html="t('confirmDeleteMessage', { title: expenseToDelete?.title })" class="text-body-1" />
         <v-card-actions>
           <v-spacer />
-          <v-btn color="grey" text @click="deleteDialog = false">{{ t('cancel') }}</v-btn>
-          <v-btn color="red" text @click="deleteExpense">{{ t('delete') }}</v-btn>
+          <v-btn color="grey darken-1" text @click="deleteDialog = false">{{ t('cancel') }}</v-btn>
+          <v-btn color="error" text @click="deleteExpense">{{ t('delete') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -164,6 +181,8 @@
       class="custom-snackbar"
       :class="{ 'dark-mode': isDarkMode }"
       location="top right"
+      rounded="pill"
+      elevation="4"
     >
       {{ t('expenseDeleted') }}
       <template v-slot:actions>
@@ -284,7 +303,7 @@ const deleteExpense = async () => {
 
 // Edit expense
 const editExpense = (expense: Expense) => {
-  selectedExpense.value = expense;
+  selectedExpense.value = { ...expense }; // Create a copy to avoid mutating the original
   showEditDialog.value = true;
 };
 
@@ -293,11 +312,13 @@ const handleExpenseSaved = (expense: Expense) => {
   const index = store.expenses.findIndex(e => e.id === expense.id);
   if (index !== -1) {
     // Update existing expense
-    store.expenses[index] = expense;
+    store.expenses[index] = { ...expense };
   } else {
     // Add new expense
-    store.expenses.push(expense);
+    store.expenses.push({ ...expense });
   }
+  // Force reactivity by reassigning the array
+  store.expenses = [...store.expenses];
 };
 
 // Update edit dialog state
@@ -305,7 +326,6 @@ const updateEditDialog = (value: boolean) => {
   showEditDialog.value = value;
   if (!value) {
     selectedExpense.value = undefined; // Clear selected expense
-    // No need to call store.fetchExpenses() here since handleExpenseSaved updates the store
   }
 };
 
@@ -348,7 +368,7 @@ const getUserShare = (expense: Expense): number => {
 // Fetch expenses on mount
 onMounted(() => {
   fetchUsers();
-  store.fetchExpenses();
+  store.fetchExpenses(); // No parameter needed
 });
 
 // Refresh expenses when the user changes
@@ -356,12 +376,83 @@ watch(
   () => authStore.currentUser,
   () => {
     fetchUsers();
-    store.fetchExpenses();
+    store.fetchExpenses(); // No parameter needed
   }
 );
 </script>
 
 <style scoped>
+.expense-list-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.v-card-title {
+  background: #f7f9fc;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 24px;
+}
+
+.v-text-field,
+.v-select {
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.clear-filters-btn {
+  height: 40px !important;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.expense-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.expense-table th {
+  background-color: #f7f9fc !important;
+  color: #333 !important;
+  font-weight: 600 !important;
+}
+
+.expense-table td {
+  padding: 12px !important;
+  font-size: 0.95rem;
+}
+
+.action-btn {
+  transition: transform 0.2s ease;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.expense-card {
+  background: #ffffff;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+}
+
+.expense-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.value {
+  font-size: 1rem;
+  color: #333;
+}
+
 .custom-snackbar {
   transition: all 0.3s ease;
 }
@@ -370,16 +461,51 @@ watch(
   color: #ffffff !important;
 }
 
-.v-card {
-  transition: all 0.3s ease;
+/* Responsive Design */
+@media (max-width: 599px) {
+  .v-card-title {
+    padding: 12px 16px;
+  }
+
+  .text-h5 {
+    font-size: 1.25rem !important;
+  }
+
+  .v-text-field,
+  .v-select {
+    font-size: 0.875rem;
+  }
+
+  .clear-filters-btn {
+    height: 36px !important;
+    font-size: 0.875rem;
+  }
+
+  .expense-card {
+    padding: 12px !important;
+  }
+
+  .label {
+    font-size: 0.85rem;
+  }
+
+  .value {
+    font-size: 0.9rem;
+  }
+
+  .action-btn {
+    width: 36px;
+    height: 36px;
+  }
 }
 
-.v-card strong {
-  font-size: 14px;
-  color: #666;
-}
+@media (min-width: 600px) and (max-width: 959px) {
+  .v-card-title {
+    padding: 14px 20px;
+  }
 
-.v-card .text-right {
-  font-size: 14px;
+  .text-h5 {
+    font-size: 1.5rem !important;
+  }
 }
 </style>

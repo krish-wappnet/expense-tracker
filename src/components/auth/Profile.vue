@@ -2,9 +2,9 @@
 <template>
   <v-container class="profile-container">
     <v-row justify="center">
-      <v-col cols="12" sm="10" md="8" lg="6">
+      <v-col cols="12" sm="10" md="9" lg="8">
         <!-- Header with Back Button -->
-        <v-row align="center" class="mb-4">
+        <v-row align="center" class="mb-8">
           <v-col cols="auto">
             <v-btn
               icon
@@ -16,7 +16,7 @@
             </v-btn>
           </v-col>
           <v-col>
-            <h1 class="text-h4 font-weight-bold primary--text">
+            <h1 class="text-h3 font-weight-medium">
               {{ t('profile') }}
             </h1>
           </v-col>
@@ -27,23 +27,23 @@
           v-if="isLoading"
           indeterminate
           color="primary"
-          size="50"
-          class="d-block mx-auto my-8"
+          size="60"
+          class="d-block mx-auto my-10"
         />
 
         <!-- Profile Card -->
-        <v-card v-else rounded="lg" elevation="6" class="pa-4 pa-sm-6 profile-card">
+        <v-card v-else rounded="lg" elevation="3" class="pa-6 pa-sm-8 profile-card">
           <v-row>
             <!-- Profile Picture Column -->
-            <v-col cols="12" sm="4" class="text-center">
-              <v-avatar :size="avatarSize" class="profile-avatar elevation-4 mb-4">
+            <v-col cols="12" sm="4" md="3" class="text-center">
+              <v-avatar :size="avatarSize" class="profile-avatar mb-6">
                 <img
                   :src="isEditing ? (tempProfilePic || profilePic || 'https://via.placeholder.com/150') : (profilePic || 'https://via.placeholder.com/150')"
                   alt="Profile Picture"
                 />
               </v-avatar>
-              <div v-if="isEditing" class="mb-4">
-                <v-btn color="primary" outlined class="mb-2">
+              <div v-if="isEditing" class="mb-6">
+                <v-btn color="primary" outlined class="mb-3" block>
                   {{ t('changeProfilePicture') }}
                   <input
                     type="file"
@@ -54,8 +54,9 @@
                 </v-btn>
                 <v-btn
                   v-if="tempProfilePic || profilePic"
-                  color="red"
+                  color="error"
                   outlined
+                  block
                   @click="removeProfilePicture"
                 >
                   {{ t('remove') }}
@@ -64,50 +65,63 @@
             </v-col>
 
             <!-- Profile Details Column -->
-            <v-col cols="12" sm="8">
+            <v-col cols="12" sm="8" md="9">
               <!-- Display Mode -->
-              <div v-if="!isEditing">
+              <div v-if="!isEditing" class="profile-details">
                 <v-row>
-                  <v-col cols="12">
-                    <v-text-field
-                      :label="t('email')"
-                      :value="email"
-                      prepend-inner-icon="mdi-email"
-                      readonly
-                      outlined
-                      dense
-                      class="rounded-lg"
-                    />
+                  <v-col cols="12" sm="6" class="mb-4">
+                    <div class="detail-item">
+                      <v-icon left color="primary" class="mr-3">mdi-email</v-icon>
+                      <div class="detail-content">
+                        <span class="detail-label">{{ t('email') }}</span>
+                        <span class="detail-value">{{ email || 'Not provided' }}</span>
+                      </div>
+                    </div>
                   </v-col>
-                  <v-col cols="12">
-                    <v-text-field
-                      :label="t('name')"
-                      :value="name"
-                      prepend-inner-icon="mdi-account"
-                      readonly
-                      outlined
-                      dense
-                      class="rounded-lg"
-                    />
+                  <v-col cols="12" sm="6" class="mb-4">
+                    <div class="detail-item">
+                      <v-icon left color="primary" class="mr-3">mdi-account</v-icon>
+                      <div class="detail-content">
+                        <span class="detail-label">{{ t('name') }}</span>
+                        <span class="detail-value">{{ name || 'Not provided' }}</span>
+                      </div>
+                    </div>
                   </v-col>
-                  <v-col cols="12">
-                    <v-textarea
-                      :label="t('about')"
-                      :value="about"
-                      prepend-inner-icon="mdi-information"
-                      readonly
-                      outlined
-                      dense
-                      :rows="textareaRows"
-                      class="rounded-lg"
-                    />
+                  <v-col cols="12" sm="6" class="mb-4">
+                    <div class="detail-item">
+                      <v-icon left color="primary" class="mr-3">mdi-phone</v-icon>
+                      <div class="detail-content">
+                        <span class="detail-label">{{ t('phoneNumber') }}</span>
+                        <span class="detail-value">{{ phoneNumber || 'Not provided' }}</span>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6" class="mb-4">
+                    <div class="detail-item">
+                      <v-icon left color="primary" class="mr-3">mdi-map-marker</v-icon>
+                      <div class="detail-content">
+                        <span class="detail-label">{{ t('address') }}</span>
+                        <span class="detail-value">{{ address || 'Not provided' }}</span>
+                      </div>
+                    </div>
+                  </v-col>
+                  <v-col cols="12" class="mb-4">
+                    <div class="detail-item">
+                      <v-icon left color="primary" class="mr-3">mdi-information</v-icon>
+                      <div class="detail-content">
+                        <span class="detail-label">{{ t('about') }}</span>
+                        <span class="detail-value">{{ about || 'Not provided' }}</span>
+                      </div>
+                    </div>
                   </v-col>
                 </v-row>
                 <v-row>
-                  <v-col cols="12" class="text-center">
+                  <v-col cols="12" class="text-right">
                     <v-btn
                       color="primary"
-                      outlined
+                      class="edit-profile-btn"
+                      rounded
+                      large
                       @click="isEditing = true"
                     >
                       <v-icon left>mdi-pencil</v-icon>
@@ -118,9 +132,9 @@
               </div>
 
               <!-- Edit Mode -->
-              <v-form v-else ref="form" @submit.prevent="updateProfile">
+              <v-form v-else ref="form" @submit.prevent="updateProfile" class="edit-form">
                 <v-row>
-                  <v-col cols="12">
+                  <v-col cols="12" sm="6">
                     <v-text-field
                       :label="t('email')"
                       :value="email"
@@ -131,7 +145,7 @@
                       class="rounded-lg"
                     />
                   </v-col>
-                  <v-col cols="12">
+                  <v-col cols="12" sm="6">
                     <v-text-field
                       v-model="tempName"
                       :label="t('name')"
@@ -139,6 +153,28 @@
                       outlined
                       dense
                       :rules="[v => !!v || t('nameRequired')]"
+                      class="rounded-lg"
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="tempPhoneNumber"
+                      :label="t('phoneNumber')"
+                      prepend-inner-icon="mdi-phone"
+                      outlined
+                      dense
+                      :rules="[v => !v || /^\+?[1-9]\d{1,14}$/.test(v) || t('phoneInvalid')]"
+                      class="rounded-lg"
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="tempAddress"
+                      :label="t('address')"
+                      prepend-inner-icon="mdi-map-marker"
+                      outlined
+                      dense
+                      :rules="[v => (v ? v.length <= 200 : true) || t('addressTooLong')]"
                       class="rounded-lg"
                     />
                   </v-col>
@@ -155,22 +191,26 @@
                     />
                   </v-col>
                 </v-row>
-                <v-row>
-                  <v-col cols="12" sm="6">
+                <v-row class="mt-6">
+                  <v-col cols="12" sm="6" md="3" class="mb-3 mb-sm-0">
                     <v-btn
                       color="grey"
                       outlined
                       block
+                      rounded
+                      large
                       @click="cancelEdit"
                     >
                       {{ t('cancel') }}
                     </v-btn>
                   </v-col>
-                  <v-col cols="12" sm="6">
+                  <v-col cols="12" sm="6" md="3">
                     <v-btn
                       color="primary"
                       type="submit"
                       block
+                      rounded
+                      large
                       :loading="loading"
                     >
                       {{ t('save') }}
@@ -191,11 +231,10 @@
       :color="snackbarColor"
       rounded="pill"
       elevation="4"
-      class="snackbar-custom"
     >
       {{ snackbarMessage }}
       <template v-slot:actions>
-        <v-btn color="white" variant="text" @click="snackbar = false">
+        <v-btn color="white" text @click="snackbar = false">
           {{ t('close') }}
         </v-btn>
       </template>
@@ -226,11 +265,15 @@ const form = ref<VForm | null>(null);
 // Reactive state for user data
 const email = ref('');
 const name = ref('');
+const phoneNumber = ref('');
+const address = ref('');
 const about = ref('');
 const profilePic = ref<string | null>(null);
 
 // Temporary state for editing
 const tempName = ref('');
+const tempPhoneNumber = ref('');
+const tempAddress = ref('');
 const tempAbout = ref('');
 const tempProfilePic = ref<string | null>(null);
 const tempProfilePicFile = ref<File | null>(null);
@@ -249,14 +292,14 @@ const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Computed properties for responsive design
 const avatarSize = computed(() => {
-  if (smAndDown.value) return '100'; // Mobile
-  if (mdAndDown.value) return '120'; // Tablet
-  return '150'; // Laptop
+  if (smAndDown.value) return '120'; // Mobile
+  if (mdAndDown.value) return '150'; // Tablet
+  return '180'; // Laptop
 });
 
 const textareaRows = computed(() => {
-  if (smAndDown.value) return 2; // Mobile
-  return 3; // Tablet and Laptop
+  if (smAndDown.value) return 3; // Mobile
+  return 4; // Tablet and Laptop
 });
 
 // Fetch user profile on mount
@@ -267,7 +310,7 @@ onMounted(async () => {
   }
 
   // Set initial user data
-  email.value = authStore.currentUser.email;
+  email.value = authStore.currentUser.email || '';
 
   // Fetch profile data from Firestore
   try {
@@ -278,11 +321,15 @@ onMounted(async () => {
     if (userDoc.exists()) {
       const data = userDoc.data();
       name.value = data.displayName || '';
+      phoneNumber.value = data.phoneNumber || '';
+      address.value = data.address || '';
       about.value = data.about || '';
       profilePic.value = data.profilePicture || null;
 
       // Set temp values for editing
       tempName.value = name.value;
+      tempPhoneNumber.value = phoneNumber.value;
+      tempAddress.value = address.value;
       tempAbout.value = about.value;
       tempProfilePic.value = null;
     } else {
@@ -311,9 +358,7 @@ const handleProfilePictureChange = (event: Event) => {
 };
 
 // Remove profile picture
-const removeProfilePicture = async () => {
-  // Since we're using Cloudinary, we won't delete the image from Cloudinary here
-  // We'll just set the profilePic to null and update Firestore
+const removeProfilePicture = () => {
   profilePic.value = null;
   tempProfilePic.value = null;
   tempProfilePicFile.value = null;
@@ -362,13 +407,15 @@ const updateProfile = async () => {
     // Prepare the update data
     const updateData: { [key: string]: any } = {
       displayName: tempName.value,
+      phoneNumber: tempPhoneNumber.value,
+      address: tempAddress.value,
       about: tempAbout.value,
     };
 
-    // Only include profilePicture in the update if it's not undefined
+    // Only include profilePicture in the update if it’s explicitly changed
     if (newProfilePicUrl === null) {
       updateData.profilePicture = deleteField(); // Remove the field from Firestore
-    } else if (newProfilePicUrl !== undefined) {
+    } else if (newProfilePicUrl) {
       updateData.profilePicture = newProfilePicUrl;
     }
 
@@ -378,6 +425,8 @@ const updateProfile = async () => {
 
     // Update local state
     name.value = tempName.value;
+    phoneNumber.value = tempPhoneNumber.value;
+    address.value = tempAddress.value;
     about.value = tempAbout.value;
     profilePic.value = newProfilePicUrl;
 
@@ -403,6 +452,8 @@ const updateProfile = async () => {
 const cancelEdit = () => {
   isEditing.value = false;
   tempName.value = name.value;
+  tempPhoneNumber.value = phoneNumber.value;
+  tempAddress.value = address.value;
   tempAbout.value = about.value;
   tempProfilePic.value = null;
   tempProfilePicFile.value = null;
@@ -428,93 +479,80 @@ const showSnackbar = (message: string, color: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 1rem;
+  background: #ffffff; /* Pure white background */
+  padding: 1.5rem;
 }
 
 .profile-card {
   background: #ffffff;
   border-radius: 16px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.profile-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 .profile-avatar {
-  border: 4px solid #e0e0e0;
-  transition: border-color 0.3s ease;
+  border: 3px solid #e0e0e0;
 }
 
-.profile-avatar:hover {
-  border-color: #1976d2;
+.profile-details {
+  padding: 1rem 0;
 }
 
-.v-text-field,
-.v-textarea {
-  transition: all 0.3s ease;
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  word-break: break-word;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #555;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.edit-form .v-text-field,
+.edit-form .v-textarea {
+  background-color: #fafafa;
+  border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
 .v-text-field[readonly] {
-  background-color: #f9f9f9;
-  color: #666;
+  background-color: #f5f5f5;
+  color: #444;
 }
 
 .v-btn {
-  border-radius: 8px;
+  border-radius: 10px;
   text-transform: none;
   font-weight: 500;
+  letter-spacing: 0.5px;
+  padding: 0 20px;
 }
 
-.snackbar-custom {
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+.edit-profile-btn {
+  background-color: #1976d2 !important; /* Vuetify primary color */
+  color: white !important;
+  padding: 0 24px;
+  height: 48px;
 }
 
-.primary--text {
-  color: #1976d2 !important;
+.text-h3 {
+  color: #333;
 }
 
-/* Mobile (xs and sm) */
-@media (max-width: 959px) {
-  .profile-container {
-    padding: 0.5rem;
-  }
-
-  .profile-card {
-    padding: 1rem;
-  }
-
-  .text-h4 {
-    font-size: 1.5rem !important;
-  }
-
-  .v-btn {
-    font-size: 0.875rem;
-    padding: 0 12px;
-  }
-
-  .v-row {
-    margin: 0 -8px;
-  }
-
-  .v-col {
-    padding: 0 8px;
-  }
-
-  .mb-4 {
-    margin-bottom: 1rem !important;
-  }
-
-  .mb-6 {
-    margin-bottom: 1.5rem !important;
-  }
-}
-
-/* Tablet (md) */
-@media (min-width: 960px) and (max-width: 1279px) {
+/* Responsive Design */
+@media (max-width: 599px) { /* xs */
   .profile-container {
     padding: 1rem;
   }
@@ -523,47 +561,80 @@ const showSnackbar = (message: string, color: string) => {
     padding: 1.5rem;
   }
 
-  .text-h4 {
-    font-size: 1.75rem !important;
+  .text-h3 {
+    font-size: 1.5rem;
   }
 
   .v-btn {
-    font-size: 0.9375rem;
-  }
-
-  .v-row {
-    margin: 0 -12px;
+    font-size: 0.875rem;
+    min-height: 40px;
   }
 
   .v-col {
-    padding: 0 12px;
+    padding: 6px;
+  }
+
+  .detail-value {
+    font-size: 0.95rem;
+  }
+
+  .detail-label {
+    font-size: 0.9rem;
+  }
+
+  .edit-profile-btn {
+    height: 40px;
+    padding: 0 16px;
   }
 }
 
-/* Laptop (lg and up) */
-@media (min-width: 1280px) {
+@media (min-width: 600px) and (max-width: 959px) { /* sm */
   .profile-container {
-    padding: 2rem;
+    padding: 1.5rem;
   }
 
   .profile-card {
     padding: 2rem;
   }
 
-  .text-h4 {
-    font-size: 2rem !important;
+  .text-h3 {
+    font-size: 1.75rem;
   }
 
   .v-btn {
-    font-size: 1rem;
-  }
-
-  .v-row {
-    margin: 0 -16px;
+    font-size: 0.9375rem;
   }
 
   .v-col {
-    padding: 0 16px;
+    padding: 8px;
+  }
+}
+
+@media (min-width: 960px) and (max-width: 1263px) { /* md */
+  .profile-container {
+    padding: 2rem;
+  }
+
+  .profile-card {
+    padding: 2.5rem;
+  }
+
+  .text-h3 {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1264px) { /* lg and up */
+  .profile-container {
+    padding: 2.5rem;
+  }
+
+  .profile-card {
+    padding: 3rem;
+  }
+
+  .text-h3 {
+    font-size: 2.25rem;
   }
 }
 </style>

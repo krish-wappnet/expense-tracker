@@ -2,13 +2,14 @@
 <template>
   <v-container fluid class="dashboard-container" :class="{ 'dark-mode': darkMode }">
     <!-- App Bar -->
-    <v-app-bar app flat color="transparent" class="mb-4">
+    <v-app-bar app flat color="transparent" class="app-bar">
       <v-app-bar-nav-icon
         v-if="$vuetify.display.smAndDown"
         @click="drawer = !drawer"
         :aria-label="t('menu')"
+        color="primary"
       />
-      <v-toolbar-title class="display-1 font-weight-bold">
+      <v-toolbar-title class="text-h5 font-weight-bold">
         {{ t('expenseTracker') }}
       </v-toolbar-title>
       <v-spacer />
@@ -17,11 +18,11 @@
         icon
         @click="router.push('/profile')"
         :aria-label="t('profile')"
-        class="mr-2"
+        class="profile-btn mr-2"
       >
-        <v-avatar size="36">
+        <v-avatar size="40" class="elevation-2">
           <img
-            :src="authStore.currentUser?.profilePicture || 'https://via.placeholder.com/36'"
+            :src="authStore.currentUser?.profilePicture || 'https://via.placeholder.com/40'"
             alt="Profile Picture"
           />
         </v-avatar>
@@ -58,7 +59,7 @@
       :class="{ 'dark-mode': darkMode }"
     >
       <v-list dense>
-        <v-list-item v-if="authStore.isAuthenticated">
+        <v-list-item v-if="authStore.isAuthenticated" class="mb-2">
           <v-btn
             color="primary"
             @click="showAddForm = true"
@@ -66,36 +67,36 @@
             elevation="2"
             rounded
             block
-            class="mb-2"
+            class="action-btn"
           >
             {{ t('addExpense') }}
           </v-btn>
         </v-list-item>
-        <v-list-item>
+        <v-list-item class="mb-2">
           <v-btn
             color="red"
             outlined
             @click="showClearDialog = true"
             rounded
             block
-            class="mb-2"
+            class="action-btn"
           >
             {{ t('clearAllData') }}
           </v-btn>
         </v-list-item>
-        <v-list-item>
+        <v-list-item class="mb-2">
           <v-btn
             color="secondary"
             @click="store.exportExpenses"
             rounded
             block
-            class="mb-2"
+            class="action-btn"
           >
             {{ t('export') }}
           </v-btn>
         </v-list-item>
-        <v-list-item>
-          <v-btn color="secondary" rounded block class="mb-2" style="position: relative;">
+        <v-list-item class="mb-2">
+          <v-btn color="secondary" rounded block class="action-btn" style="position: relative;">
             {{ t('import') }}
             <input
               type="file"
@@ -104,38 +105,38 @@
             />
           </v-btn>
         </v-list-item>
-        <v-list-item v-if="authStore.isAuthenticated">
+        <v-list-item v-if="authStore.isAuthenticated" class="mb-2">
           <v-btn
             color="red"
             text
             @click="logoutUser"
             rounded
             block
-            class="mb-2"
+            class="action-btn"
           >
             {{ t('logout') }}
           </v-btn>
         </v-list-item>
-        <v-list-item v-else>
+        <v-list-item v-else class="mb-2">
           <v-btn
             color="green"
             text
             @click="router.push('/login')"
             rounded
             block
-            class="mb-2"
+            class="action-btn"
           >
             {{ t('login') }}
           </v-btn>
         </v-list-item>
-        <v-list-item v-if="!authStore.isAuthenticated">
+        <v-list-item v-if="!authStore.isAuthenticated" class="mb-2">
           <v-btn
             color="blue"
             text
             @click="router.push('/signup')"
             rounded
             block
-            class="mb-2"
+            class="action-btn"
           >
             {{ t('signup') }}
           </v-btn>
@@ -145,16 +146,16 @@
 
     <!-- Main Content -->
     <v-main class="main-content">
-      <v-container fluid class="pa-4">
+      <v-container fluid class="pa-6">
         <v-row>
           <v-col cols="12">
             <!-- Expense List -->
             <ExpenseList :expenses="filteredExpenses" @edit="editExpense" @delete="deleteExpense" />
 
             <!-- Filters -->
-            <v-expansion-panels flat class="mt-4">
-              <v-expansion-panel rounded="lg">
-                <v-expansion-panel-title class="font-weight-medium">
+            <v-expansion-panels flat class="mt-6">
+              <v-expansion-panel rounded="lg" class="elevation-2">
+                <v-expansion-panel-title class="font-weight-medium text-h6">
                   {{ t('filters') }}
                 </v-expansion-panel-title>
                 <v-expansion-panel-text>
@@ -168,6 +169,7 @@
                         clearable
                         dense
                         :aria-label="t('searchExpenses')"
+                        class="rounded-lg"
                       />
                     </v-col>
                     <v-col cols="12" sm="6" md="4">
@@ -187,6 +189,7 @@
                             dense
                             v-bind="props"
                             :aria-label="t('startDate')"
+                            class="rounded-lg"
                           />
                         </template>
                         <v-date-picker
@@ -213,7 +216,8 @@
                             clearable
                             dense
                             v-bind="props"
-                            :aria-label="t('endDate')"
+                            :aria-label="t('startDate')"
+                            class="rounded-lg"
                           />
                         </template>
                         <v-date-picker
@@ -231,22 +235,22 @@
             </v-expansion-panels>
 
             <!-- Summary Section -->
-            <v-card elevation="4" class="pa-4 mt-6" rounded="lg">
-              <v-card-title class="subtitle-1 font-weight-medium">{{ t('summary') }}</v-card-title>
+            <v-card elevation="4" class="pa-6 mt-6" rounded="lg">
+              <v-card-title class="text-h6 font-weight-medium">{{ t('summary') }}</v-card-title>
               <v-card-text>
                 <v-row dense>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-chip color="primary" label prepend-icon="mdi-format-list-bulleted" class="mb-2">
+                  <v-col cols="12" sm="6" md="4" class="mb-4">
+                    <v-chip color="primary" label prepend-icon="mdi-format-list-bulleted" class="summary-chip">
                       {{ t('totalExpenses', { count: filteredExpenses.length }) }}
                     </v-chip>
                   </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-chip color="green" label prepend-icon="mdi-currency-inr" class="mb-2">
+                  <v-col cols="12" sm="6" md="4" class="mb-4">
+                    <v-chip color="green" label prepend-icon="mdi-currency-inr" class="summary-chip">
                       {{ t('totalAmount', { amount: totalAmount.toFixed(2) }) }}
                     </v-chip>
                   </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-chip color="orange" label prepend-icon="mdi-calculator" class="mb-2">
+                  <v-col cols="12" sm="6" md="4" class="mb-4">
+                    <v-chip color="orange" label prepend-icon="mdi-calculator" class="summary-chip">
                       {{ t('averageAmount', { amount: averageAmount.toFixed(2) }) }}
                     </v-chip>
                   </v-col>
@@ -255,8 +259,8 @@
             </v-card>
 
             <!-- Single Chart (Expense Trend) -->
-            <v-card elevation="4" class="pa-4 mt-6" rounded="lg">
-              <v-card-title class="subtitle-1 font-weight-medium">{{ t('expenseTrend') }}</v-card-title>
+            <v-card elevation="4" class="pa-6 mt-6" rounded="lg">
+              <v-card-title class="text-h6 font-weight-medium">{{ t('expenseTrend') }}</v-card-title>
               <v-card-text>
                 <div class="chart-container">
                   <ExpenseChart :expenses="filteredExpenses" />
@@ -273,7 +277,7 @@
     <ExpenseForm :show="showEditForm" :expense="selectedExpense" @update:show="showEditForm = $event" />
     <v-dialog v-model="showClearDialog" max-width="400">
       <v-card rounded="lg">
-        <v-card-title class="headline">{{ t('confirmClearAllData') }}</v-card-title>
+        <v-card-title class="text-h6">{{ t('confirmClearAllData') }}</v-card-title>
         <v-card-text>{{ t('clearAllDataMessage') }}</v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -438,26 +442,6 @@ const averageAmount = computed(() =>
   filteredExpenses.value.length ? totalAmount.value / filteredExpenses.value.length : 0
 );
 
-// Removed sharedExpensesCount, highestExpense, and topCategory as they are no longer needed
-// const sharedExpensesCount = computed(() =>
-//   filteredExpenses.value.filter((exp) => exp.sharedWith && exp.sharedWith.length > 0).length
-// );
-//
-// const highestExpense = computed(() =>
-//   filteredExpenses.value.length
-//     ? Math.max(...filteredExpenses.value.map((exp) => exp.amount))
-//     : 0
-// );
-//
-// const topCategory = computed(() => {
-//   const categoryTotals = filteredExpenses.value.reduce((acc, exp) => {
-//     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
-//     return acc;
-//   }, {} as Record<string, number>);
-//   const top = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
-//   return top ? t(`categories.${top[0].toLowerCase()}`, top[0]) : t('noData');
-// });
-
 // Actions
 const clearAllData = () => {
   store.resetExpenses();
@@ -485,20 +469,26 @@ const logoutUser = () => {
 
 <style scoped>
 .dashboard-container {
-  background-color: #f5f5f5;
+  background-color: #f7f9fc;
   color: #333;
   transition: background-color 0.3s ease;
-  min-height: 100vh; /* Ensure full viewport height */
+  min-height: 100vh;
   padding: 0 !important;
   display: flex;
   flex-direction: column;
 }
 
+.app-bar {
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  padding: 0 16px;
+}
+
 .sidebar {
   background-color: #ffffff;
-  padding: 16px;
+  padding: 20px;
   border-right: 1px solid #e0e0e0;
-  height: 100%; /* Full height of container */
+  height: 100%;
 }
 
 .dark-mode .sidebar {
@@ -507,8 +497,8 @@ const logoutUser = () => {
 }
 
 .main-content {
-  flex: 1; /* Take remaining space */
-  overflow-y: auto; /* Allow scrolling if content overflows */
+  flex: 1;
+  overflow-y: auto;
 }
 
 .v-card,
@@ -516,10 +506,15 @@ const logoutUser = () => {
 .v-text-field {
   background-color: #ffffff;
   transition: background-color 0.3s ease;
+  border-radius: 12px;
 }
 
 .dark-mode {
   background-color: #121212;
+}
+
+.dark-mode .app-bar {
+  background: #1e1e1e !important;
 }
 
 .dark-mode .v-card,
@@ -535,8 +530,19 @@ const logoutUser = () => {
   color: #ffffff;
 }
 
-.dark-mode h1 {
+.dark-mode h1,
+.dark-mode .text-h5,
+.dark-mode .text-h6 {
   color: #ffffff !important;
+}
+
+.profile-btn .v-avatar {
+  border: 2px solid #e0e0e0;
+  transition: transform 0.2s ease;
+}
+
+.profile-btn:hover .v-avatar {
+  transform: scale(1.1);
 }
 
 .language-select {
@@ -549,19 +555,32 @@ const logoutUser = () => {
   font-size: 14px;
 }
 
+.action-btn {
+  height: 48px !important;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+.summary-chip {
+  font-size: 1rem;
+  padding: 0 16px;
+  height: 40px;
+}
+
 .chart-container {
   position: relative;
-  height: 300px; /* Fixed height for visibility */
+  height: 350px;
   width: 100%;
 }
 
 .v-snackbar {
-  font-weight: medium;
+  font-weight: 500;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 600px) {
-  .v-toolbar-title {
+  .text-h5 {
     font-size: 1.25rem !important;
   }
 
@@ -569,16 +588,21 @@ const logoutUser = () => {
     min-width: 100px;
   }
 
-  .v-chip {
-    font-size: 12px;
-    padding: 0 8px;
+  .action-btn {
+    height: 40px !important;
+    font-size: 0.875rem;
+  }
+
+  .summary-chip {
+    font-size: 0.875rem;
+    padding: 0 12px;
+    height: 36px;
   }
 
   .chart-container {
     height: 250px;
   }
 
-  /* Improve table display on mobile */
   .v-data-table {
     font-size: 12px;
   }
@@ -596,7 +620,7 @@ const logoutUser = () => {
 
 @media (min-width: 960px) {
   .main-content {
-    margin-left: 20px; /* Match sidebar width */
+    margin-left: 20px;
   }
 }
 </style>

@@ -1,92 +1,177 @@
 <!-- src/components/ExpenseForm.vue -->
 <template>
   <v-dialog v-model="dialog" :max-width="dialogMaxWidth" persistent>
-    <v-card>
-      <v-card-title class="headline">
+    <v-card rounded="lg" class="expense-form-card">
+      <v-card-title class="text-h5 font-weight-bold primary--text">
         {{ isEdit ? t('editExpense') : t('addExpense') }}
+        <v-spacer />
+        <v-btn icon @click="closeDialog" :aria-label="t('close')">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
       </v-card-title>
-      <v-card-text>
+      <v-card-text class="pt-4">
         <v-form ref="form" @submit.prevent="saveExpense">
-          <!-- Basic Details -->
-          <v-text-field
-            v-model="title"
-            :label="t('title')"
-            :rules="[v => !!v || t('titleRequired'), v => v.length <= 100 || t('titleTooLong')]"
-            outlined
-            @input="logInput('title', $event)"
-          />
-          <v-text-field
-            v-model.number="amount"
-            :label="t('amount')"
-            type="number"
-            :rules="[v => (typeof v === 'number' && v > 0) || t('amountPositive')]"
-            outlined
-            @input="logInput('amount', $event)"
-          />
-          <v-text-field
-            v-model="date"
-            :label="t('date')"
-            :rules="[v => /^\d{2}-\d{2}-\d{4}$/.test(v.trim()) || t('dateFormat')]"
-            placeholder="dd-mm-yyyy"
-            prepend-inner-icon="mdi-calendar"
-            @click:prepend-inner="fromDateMenu = true"
-            outlined
-            @input="logInput('date', $event)"
-          />
-          <v-menu v-model="fromDateMenu" :close-on-content-click="false">
-            <template v-slot:activator="{ props }">
-              <span v-bind="props" style="display: none;"></span>
-            </template>
-            <v-date-picker v-model="fromDate" @update:modelValue="updateFromDate" />
-          </v-menu>
+          <!-- Basic Details Section -->
+          <v-row>
+            <v-col cols="12">
+              <h3 class="text-subtitle-1 font-weight-medium mb-3">{{ t('basicDetails') }}</h3>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="title"
+                :label="t('title')"
+                :rules="[v => !!v || t('titleRequired'), v => v.length <= 100 || t('titleTooLong')]"
+                outlined
+                dense
+                prepend-inner-icon="mdi-text"
+                class="rounded-lg"
+                @input="logInput('title', $event)"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model.number="amount"
+                :label="t('amount')"
+                type="number"
+                :rules="[v => (typeof v === 'number' && v > 0) || t('amountPositive')]"
+                outlined
+                dense
+                prepend-inner-icon="mdi-currency-inr"
+                class="rounded-lg"
+                @input="logInput('amount', $event)"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model="date"
+                :label="t('date')"
+                :rules="[v => /^\d{2}-\d{2}-\d{4}$/.test(v.trim()) || t('dateFormat')]"
+                placeholder="dd-mm-yyyy"
+                prepend-inner-icon="mdi-calendar"
+                outlined
+                dense
+                readonly
+                class="rounded-lg"
+                @click:prepend-inner="fromDateMenu = true"
+                @input="logInput('date', $event)"
+              />
+              <v-menu v-model="fromDateMenu" :close-on-content-click="false">
+                <template v-slot:activator="{ props }">
+                  <span v-bind="props" style="display: none;"></span>
+                </template>
+                <v-date-picker
+                  v-model="fromDate"
+                  @update:modelValue="updateFromDate"
+                  :max="new Date().toISOString().split('T')[0]"
+                  no-title
+                />
+              </v-menu>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="category"
+                :items="categories"
+                :label="t('category')"
+                :rules="[v => !!v || t('categoryRequired')]"
+                outlined
+                dense
+                prepend-inner-icon="mdi-tag"
+                class="rounded-lg"
+                @update:modelValue="logInput('category', $event)"
+              />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="paymentMethod"
+                :items="paymentMethods"
+                :label="t('paymentMethod')"
+                :rules="[v => !!v || t('paymentMethodRequired')]"
+                outlined
+                dense
+                prepend-inner-icon="mdi-credit-card"
+                class="rounded-lg"
+                @update:modelValue="logInput('paymentMethod', $event)"
+              />
+            </v-col>
+          </v-row>
 
-          <!-- Category -->
-          <v-select
-            v-model="category"
-            :items="categories"
-            :label="t('category')"
-            :rules="[v => !!v || t('categoryRequired')]"
-            outlined
-            @update:modelValue="logInput('category', $event)"
-          />
-
-          <!-- Payment Method -->
-          <v-select
-            v-model="paymentMethod"
-            :items="paymentMethods"
-            :label="t('paymentMethod')"
-            :rules="[v => !!v || t('paymentMethodRequired')]"
-            outlined
-            @update:modelValue="logInput('paymentMethod', $event)"
-          />
-
-          <!-- Share With -->
-          <v-autocomplete
-            v-model="selectedUser"
-            :items="availableUsers"
-            item-title="displayName"
-            item-value="id"
-            :label="t('selectUser')"
-            outlined
-            clearable
-            @update:modelValue="logInput('selectedUser', $event)"
-          />
-          <v-btn color="primary" @click="addSharedUser" :disabled="!selectedUser">{{ t('addUser') }}</v-btn>
-          <v-list v-if="sharedWith.length">
-            <v-list-item v-for="(user, index) in sharedWith" :key="user.userId">
-              <v-list-item-title>
-                {{ getUserName(user.userId) }} - {{ formatCurrency(splitAmount) }}
-              </v-list-item-title>
-              <v-list-item-action>
-                <v-btn icon @click="removeSharedUser(index)"><v-icon>mdi-delete</v-icon></v-btn>
-              </v-list-item-action>
-            </v-list-item>
-          </v-list>
-          <p v-else>{{ t('noUsersSelected') }}</p>
+          <!-- Share With Section -->
+          <v-row class="mt-4">
+            <v-col cols="12">
+              <h3 class="text-subtitle-1 font-weight-medium mb-3">{{ t('shareWith') }}</h3>
+            </v-col>
+            <v-col cols="12" class="d-flex align-center flex-wrap">
+              <v-autocomplete
+                v-model="selectedUser"
+                :items="availableUsers"
+                item-title="displayName"
+                item-value="id"
+                :label="t('selectUser')"
+                outlined
+                dense
+                prepend-inner-icon="mdi-account-plus"
+                class="rounded-lg user-select"
+                clearable
+                @update:modelValue="logInput('selectedUser', $event)"
+              />
+              <v-btn
+                color="primary"
+                rounded
+                :disabled="!selectedUser"
+                @click="addSharedUser"
+                class="add-user-btn ml-3"
+              >
+                {{ t('addUser') }}
+              </v-btn>
+            </v-col>
+            <v-col cols="12">
+              <v-list v-if="sharedWith.length" class="shared-users-list">
+                <v-list-item v-for="(user, index) in sharedWith" :key="user.userId" class="shared-user-item">
+                  <v-list-item-title class="d-flex align-center">
+                    <v-icon left color="primary" class="mr-2">mdi-account</v-icon>
+                    <span class="user-name">{{ getUserName(user.userId) }}</span>
+                    <span class="ml-2 text-grey-darken-1">{{ formatCurrency(splitAmount) }}</span>
+                  </v-list-item-title>
+                  <v-list-item-action>
+                    <v-btn icon color="error" class="delete-user-btn">
+                      <v-icon @click="removeSharedUser(index)">mdi-trash-can</v-icon>
+                    </v-btn>
+                  </v-list-item-action>
+                </v-list-item>
+              </v-list>
+              <p v-else class="text-body-2 text-grey-darken-1">{{ t('noUsersSelected') }}</p>
+            </v-col>
+          </v-row>
 
           <!-- Actions -->
-          <v-btn color="primary" type="submit" :loading="loading">{{ t('save') }}</v-btn>
-          <v-btn text @click="closeDialog">{{ t('cancel') }}</v-btn>
+          <v-row class="mt-6">
+            <v-col cols="12" sm="6">
+              <v-btn
+                color="primary"
+                type="submit"
+                block
+                rounded
+                large
+                :loading="loading"
+                class="action-btn"
+              >
+                {{ t('save') }}
+              </v-btn>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-btn
+                color="grey darken-1"
+                outlined
+                block
+                rounded
+                large
+                @click="closeDialog"
+                class="action-btn"
+              >
+                {{ t('cancel') }}
+              </v-btn>
+            </v-col>
+          </v-row>
         </v-form>
       </v-card-text>
     </v-card>
@@ -97,6 +182,8 @@
       :timeout="3000"
       :color="snackbar.color"
       location="top right"
+      rounded="pill"
+      elevation="4"
     >
       {{ snackbar.message }}
       <template v-slot:actions>
@@ -335,7 +422,7 @@ const saveExpense = async () => {
       await updateExpense(savedExpense);
       snackbar.value = { show: true, message: t('expenseUpdated'), color: 'success' };
     } else {
-      savedExpense = await addExpense(expenseData); // addExpense returns an Expense object
+      savedExpense = await addExpense(expenseData);
       snackbar.value = { show: true, message: t('expenseAdded'), color: 'success' };
     }
     emit('expense-saved', savedExpense);
@@ -359,8 +446,142 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.headline {
-  font-size: 1.5rem;
-  font-weight: bold;
+.expense-form-card {
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.v-card-title {
+  background: #f7f9fc;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 24px;
+}
+
+.v-text-field,
+.v-select,
+.v-autocomplete {
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.user-select {
+  flex: 1;
+  min-width: 200px;
+}
+
+.add-user-btn {
+  height: 40px !important;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  min-width: 120px;
+}
+
+.shared-users-list {
+  background: #f7f9fc;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.shared-user-item {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.shared-user-item:last-child {
+  border-bottom: none;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.delete-user-btn {
+  background-color: #ff5252 !important;
+  color: white !important;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+}
+
+.action-btn {
+  height: 48px !important;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive Design */
+@media (max-width: 599px) {
+  .v-card-title {
+    padding: 12px 16px;
+  }
+
+  .text-h5 {
+    font-size: 1.25rem !important;
+  }
+
+  .text-subtitle-1 {
+    font-size: 0.95rem !important;
+  }
+
+  .v-text-field,
+  .v-select,
+  .v-autocomplete {
+    font-size: 0.875rem;
+  }
+
+  .user-select {
+    min-width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .add-user-btn {
+    width: 100%;
+    min-width: 100%;
+    height: 40px !important;
+    font-size: 0.875rem;
+  }
+
+  .action-btn {
+    height: 40px !important;
+    font-size: 0.875rem;
+  }
+
+  .shared-user-item {
+    padding: 6px 0;
+  }
+
+  .delete-user-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+
+  .user-name {
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 959px) {
+  .v-card-title {
+    padding: 14px 20px;
+  }
+
+  .text-h5 {
+    font-size: 1.5rem !important;
+  }
+
+  .user-select {
+    min-width: 250px;
+  }
+
+  .add-user-btn {
+    height: 40px !important;
+  }
 }
 </style>

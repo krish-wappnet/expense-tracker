@@ -1,5 +1,3 @@
-// src/types/expense.ts
-// src/types/expense.ts
 export interface Expense {
   id: string;
   title: string;
@@ -9,12 +7,12 @@ export interface Expense {
   paymentMethod: 'Cash' | 'Card' | 'Online';
   userId: string;
   sharedWith: { userId: string; name: string; share: number }[];
-  createdAt?: string; // ISO string
+  createdAt?: string; 
 }
 
 export interface SharedUser {
   userId: string;
-  name: string; // Add name
-  email: string; // Add email
+  name: string; 
+  email: string; 
   share: number;
 }
