@@ -57,7 +57,7 @@
             :loading="loading"
           >
             <v-icon left class="google-icon">mdi-google</v-icon>
-            {{ t('Google') }}
+            {{ t('Sign in with Google') }}
           </v-btn>
 
 

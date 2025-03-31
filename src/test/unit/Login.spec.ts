@@ -8,7 +8,7 @@ import * as directives from "vuetify/directives";
 import { useAuthStore } from "@/stores/auth";
 import type { DefineComponent, ComponentOptionsMixin, PublicProps, ComponentProvideOptions, ComponentPublicInstance } from "vue";
 
-// Mock ResizeObserver before imports
+// Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
   callback: ResizeObserverCallback;
   constructor(callback: ResizeObserverCallback) {
@@ -23,9 +23,11 @@ global.ResizeObserver = class ResizeObserver {
 interface LoginInstance extends ComponentPublicInstance {
   loading: boolean;
   snackbar: { show: boolean; message: string; color: string };
+  form: { email: string; password: string };
+  errors: { email: string; password: string };
 }
 
-// Create Vuetify instance for testing
+// Create Vuetify instance
 const vuetify = createVuetify({ components, directives });
 
 // Mock Vue Router
@@ -35,7 +37,7 @@ vi.mock("vue-router", () => ({
   })),
 }));
 
-// Mock authService (not directly used, but imported in Login.vue)
+// Mock authService
 vi.mock("@/services/authService", () => ({
   login: vi.fn(),
 }));
@@ -48,11 +50,12 @@ vi.mock("vue-i18n", () => ({
 }));
 
 // Mock useAuthStore
+const mockAuthStore = {
+  login: vi.fn(),
+  loginWithGoogle: vi.fn(),
+};
 vi.mock("@/stores/auth", () => ({
-  useAuthStore: vi.fn(() => ({
-    login: vi.fn(),
-    loginWithGoogle: vi.fn(),
-  })),
+  useAuthStore: vi.fn(() => mockAuthStore),
 }));
 
 describe("Login.vue", () => {
@@ -87,6 +90,9 @@ describe("Login.vue", () => {
     mount(component, {
       global: {
         plugins: [vuetify],
+        provide: {
+          authStore: mockAuthStore,
+        },
       },
     });
 
@@ -96,8 +102,10 @@ describe("Login.vue", () => {
     expect(wrapper.find("input[type='email']").exists()).toBe(true);
     expect(wrapper.find("input[type='password']").exists()).toBe(true);
     expect(wrapper.find("button[type='submit']").text()).toContain("login");
-    expect(wrapper.find(".v-btn .mdi-google").exists()).toBe(true);
-    expect(wrapper.find(".v-btn").text()).toContain("signInWithGoogle");
+
+    const googleButton = wrapper.find(".google-btn");
+    expect(googleButton.exists()).toBe(true);
+    expect(googleButton.text()).toContain("Sign in with Google");
   });
 
   it("shows validation errors when submitting empty form", async () => {
@@ -113,13 +121,13 @@ describe("Login.vue", () => {
 
   it("disables buttons when loading", async () => {
     const wrapper = mountWithVuetify(Login);
-    (wrapper.vm as unknown as LoginInstance).loading = true;
+    (wrapper.vm as LoginInstance).loading = true;
     await wrapper.vm.$nextTick();
 
     const loginButton = wrapper.find("button[type='submit']");
-    const googleButton = wrapper.find(".v-btn.mdi-google").element.parentElement as HTMLButtonElement;
-    expect((loginButton.element as HTMLButtonElement).disabled).toBe(true);
-    expect(googleButton.disabled).toBe(true);
+    const googleButton = wrapper.find(".google-btn");
+    expect(loginButton.attributes("disabled")).toBeDefined();
+    expect(googleButton.attributes("disabled")).toBeDefined();
   });
 
   it("shows an error when email is invalid", async () => {
@@ -133,7 +141,6 @@ describe("Login.vue", () => {
   });
 
   it("calls login API when form is valid", async () => {
-    const mockAuthStore = useAuthStore();
     mockAuthStore.login.mockResolvedValue(undefined);
 
     const wrapper = mountWithVuetify(Login);
@@ -146,7 +153,6 @@ describe("Login.vue", () => {
   });
 
   it("displays success message on successful login", async () => {
-    const mockAuthStore = useAuthStore();
     mockAuthStore.login.mockResolvedValue(undefined);
 
     const wrapper = mountWithVuetify(Login);
@@ -155,16 +161,14 @@ describe("Login.vue", () => {
     await wrapper.find("form").trigger("submit.prevent");
     await wrapper.vm.$nextTick();
     await new Promise((resolve) => setTimeout(resolve, 200));
-    await wrapper.vm.$nextTick();
 
     const snackbar = wrapper.findComponent({ name: "v-snackbar" });
     expect(snackbar.vm.modelValue).toBe(true);
-    expect((wrapper.vm as unknown as LoginInstance).snackbar.message).toContain("loginSuccess");
+    expect((wrapper.vm as LoginInstance).snackbar.message).toContain("loginSuccess");
   });
 
   it("displays error message on login failure", async () => {
-    const mockAuthStore = useAuthStore();
-    mockAuthStore.login.mockRejectedValue({ response: { status: 401 } });
+    mockAuthStore.login.mockRejectedValue({ response: { status: 401, data: "invalidCredentials" } });
 
     const wrapper = mountWithVuetify(Login);
     await wrapper.find("input[type='email']").setValue("test@example.com");
@@ -172,54 +176,48 @@ describe("Login.vue", () => {
     await wrapper.find("form").trigger("submit.prevent");
     await wrapper.vm.$nextTick();
     await new Promise((resolve) => setTimeout(resolve, 200));
-    await wrapper.vm.$nextTick();
 
     const snackbar = wrapper.findComponent({ name: "v-snackbar" });
     expect(snackbar.vm.modelValue).toBe(true);
-    expect((wrapper.vm as unknown as LoginInstance).snackbar.message).toContain("invalidCredentials");
+    expect((wrapper.vm as LoginInstance).snackbar.message).toContain("invalidCredentials");
   });
 
   it("calls Google Sign-In when button is clicked", async () => {
-    const mockAuthStore = useAuthStore();
     mockAuthStore.loginWithGoogle.mockResolvedValue(undefined);
 
     const wrapper = mountWithVuetify(Login);
-    const googleButton = wrapper.find(".v-btn.mdi-google").element.parentElement as HTMLElement;
-    await googleButton.click();
+    const googleButton = wrapper.find(".google-btn");
+    await googleButton.trigger("click");
     await wrapper.vm.$nextTick();
 
     expect(mockAuthStore.loginWithGoogle).toHaveBeenCalled();
   });
 
   it("displays success message on successful Google Sign-In", async () => {
-    const mockAuthStore = useAuthStore();
     mockAuthStore.loginWithGoogle.mockResolvedValue(undefined);
 
     const wrapper = mountWithVuetify(Login);
-    const googleButton = wrapper.find(".v-btn.mdi-google").element.parentElement as HTMLElement;
-    await googleButton.click();
+    const googleButton = wrapper.find(".google-btn");
+    await googleButton.trigger("click");
     await wrapper.vm.$nextTick();
     await new Promise((resolve) => setTimeout(resolve, 200));
-    await wrapper.vm.$nextTick();
 
     const snackbar = wrapper.findComponent({ name: "v-snackbar" });
     expect(snackbar.vm.modelValue).toBe(true);
-    expect((wrapper.vm as unknown as LoginInstance).snackbar.message).toContain("loginSuccess");
+    expect((wrapper.vm as LoginInstance).snackbar.message).toContain("loginSuccess");
   });
 
   it("displays error message on Google Sign-In failure", async () => {
-    const mockAuthStore = useAuthStore();
     mockAuthStore.loginWithGoogle.mockRejectedValue({ message: "Google auth failed" });
 
     const wrapper = mountWithVuetify(Login);
-    const googleButton = wrapper.find(".v-btn.mdi-google").element.parentElement as HTMLElement;
-    await googleButton.click();
+    const googleButton = wrapper.find(".google-btn");
+    await googleButton.trigger("click");
     await wrapper.vm.$nextTick();
     await new Promise((resolve) => setTimeout(resolve, 200));
-    await wrapper.vm.$nextTick();
 
     const snackbar = wrapper.findComponent({ name: "v-snackbar" });
     expect(snackbar.vm.modelValue).toBe(true);
-    expect((wrapper.vm as unknown as LoginInstance).snackbar.message).toContain("Google auth failed");
+    expect((wrapper.vm as LoginInstance).snackbar.message).toContain("Google auth failed");
   });
 });
