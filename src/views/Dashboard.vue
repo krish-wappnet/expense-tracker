@@ -216,7 +216,7 @@
                             clearable
                             dense
                             v-bind="props"
-                            :aria-label="t('startDate')"
+                            :aria-label="t('endDate')"
                             class="rounded-lg"
                           />
                         </template>
@@ -302,7 +302,6 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useExpenseStore } from '@/stores/expenseStore';
 import { useAuthStore } from '@/stores/auth';
-import { logout } from '@/services/authService';
 import ExpenseList from '@/components/ExpenseList.vue';
 import ExpenseChart from '@/components/ExpenseChart.vue';
 import ExpenseForm from '@/components/ExpenseForm.vue';
@@ -310,12 +309,15 @@ import type { Expense } from '@/types/expense';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 
+// Initialize stores and router
 const store = useExpenseStore();
 const authStore = useAuthStore();
 const router = useRouter();
 const { locale, t } = useI18n();
 const display = useDisplay();
-const drawer = ref(true); // Default to true for visibility
+
+// Reactive variables
+const drawer = ref(true);
 const showAddForm = ref(false);
 const showEditForm = ref(false);
 const selectedExpense = ref<Expense | undefined>(undefined);
@@ -339,7 +341,13 @@ const languages = [
 ];
 
 // Dark Mode Handling
-onMounted(() => {
+const toggleDarkMode = () => {
+  darkMode.value = !darkMode.value;
+  localStorage.setItem('darkMode', JSON.stringify(darkMode.value));
+};
+
+// Sync auth state and initialize component
+onMounted(async () => {
   const savedDarkMode = localStorage.getItem('darkMode');
   darkMode.value = savedDarkMode ? JSON.parse(savedDarkMode) : false;
 
@@ -348,19 +356,18 @@ onMounted(() => {
     locale.value = savedLanguage;
   }
 
-  if (authStore.isAuthenticated && authStore.currentUser) {
-    store.fetchExpenses(authStore.currentUser.id.toString()).catch((error) => {
-      console.error('Failed to fetch expenses:', error);
-    });
-  } else {
+  try {
+    await authStore.initializeAuth();
+    if (authStore.isAuthenticated) {
+      await store.fetchExpenses(); // No arguments needed
+    } else {
+      router.push('/login');
+    }
+  } catch (error) {
+    console.error('Error during initialization:', error);
     router.push('/login');
   }
 });
-
-const toggleDarkMode = () => {
-  darkMode.value = !darkMode.value;
-  localStorage.setItem('darkMode', JSON.stringify(darkMode.value));
-};
 
 // Language Persistence
 watch(locale, (newLocale) => {
@@ -443,9 +450,13 @@ const averageAmount = computed(() =>
 );
 
 // Actions
-const clearAllData = () => {
-  store.resetExpenses();
-  showClearDialog.value = false;
+const clearAllData = async () => {
+  try {
+    await store.resetExpenses();
+    showClearDialog.value = false;
+  } catch (error) {
+    console.error('Failed to clear data:', error);
+  }
 };
 
 const editExpense = (expense: Expense) => {
@@ -461,9 +472,13 @@ const deleteExpense = async (id: string) => {
   }
 };
 
-const logoutUser = () => {
-  logout();
-  router.push('/login');
+const logoutUser = async () => {
+  try {
+    await authStore.logout();
+    router.push('/login');
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
 };
 </script>
 

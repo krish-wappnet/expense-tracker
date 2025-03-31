@@ -7,7 +7,8 @@ import {
   GoogleAuthProvider, 
   signInWithPopup, 
   signOut,
-  updateProfile
+  updateProfile,
+  onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
@@ -69,12 +70,30 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    async initializeAuth() {
+      return new Promise<void>((resolve) => {
+        onAuthStateChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
+            const idToken = await firebaseUser.getIdToken();
+            const userData = await this.saveUserData(firebaseUser);
+            this.currentUser = userData;
+            this.token = idToken;
+            localStorage.setItem('token', idToken);
+          } else {
+            this.currentUser = null;
+            this.token = null;
+            localStorage.removeItem('token');
+          }
+          resolve();
+        });
+      });
+    },
+
     async signUp(email: string, password: string, displayName: string) {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
 
-        // Update the user's display name in Firebase Authentication
         await updateProfile(firebaseUser, { displayName });
 
         const idToken = await firebaseUser.getIdToken();

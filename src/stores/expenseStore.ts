@@ -115,11 +115,12 @@ export const useExpenseStore = defineStore('expense', () => {
         try {
           const importedExpenses = JSON.parse(e.target?.result as string) as Expense[];
           expenses.value = importedExpenses;
-          // Optionally, sync the imported expenses with Firestore
-          if (authStore.currentUser?.id) {
+          // Sync the imported expenses with Firestore only if authenticated
+          if (authStore.isAuthenticated && authStore.currentUser) {
+            const userId = authStore.currentUser.id; // Guaranteed non-null due to isAuthenticated
             importedExpenses.forEach(async (expense) => {
-              const expensesCollection = collection(db, 'users', authStore.currentUser.id, 'expenses');
-              await addDoc(expensesCollection, expense);
+              const expensesCollection = collection(db, 'users', userId, 'expenses');
+              await addDoc(expensesCollection, { ...expense, id: undefined }); // Remove id to avoid duplication
             });
           }
         } catch (error) {
