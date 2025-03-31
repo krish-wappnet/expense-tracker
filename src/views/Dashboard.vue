@@ -15,18 +15,19 @@
       <v-spacer />
       <v-btn
         v-if="authStore.isAuthenticated"
-        icon
-        @click="router.push('/profile')"
-        :aria-label="t('profile')"
-        class="profile-btn mr-2"
-      >
-        <v-avatar size="40" class="elevation-2">
-          <img
-            :src="authStore.currentUser?.profilePicture || 'https://via.placeholder.com/40'"
-            alt="Profile Picture"
-          />
-        </v-avatar>
-      </v-btn>
+          icon
+          @click="router.push('/profile')"
+          :aria-label="t('profile')"
+          class="profile-btn mr-2"
+        >
+          <v-avatar size="40" class="elevation-2">
+            <img
+              :src="profilePic || 'https://via.placeholder.com/150'"
+              alt="Profile Picture"
+              @error="$event.target && (($event.target as HTMLImageElement).src = 'https://via.placeholder.com/150')"
+            />
+          </v-avatar>
+        </v-btn>
       <v-btn
         :icon="darkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waxing-crescent'"
         @click="toggleDarkMode"
@@ -308,6 +309,9 @@ import ExpenseForm from '@/components/ExpenseForm.vue';
 import type { Expense } from '@/types/expense';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
+import { db } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
 
 // Initialize stores and router
 const store = useExpenseStore();
@@ -325,6 +329,7 @@ const showClearDialog = ref(false);
 const showSnackbar = ref(false);
 const darkMode = ref(false);
 const searchQuery = ref<string>('');
+const profilePic = ref<string | null>(null);
 
 // Date Range
 const startDateMenu = ref(false);
@@ -358,8 +363,21 @@ onMounted(async () => {
 
   try {
     await authStore.initializeAuth();
-    if (authStore.isAuthenticated) {
-      await store.fetchExpenses(); // No arguments needed
+    if (authStore.isAuthenticated && authStore.currentUser) {
+      await store.fetchExpenses();
+      
+      // Fetch profile picture from Firestore
+      const userId = authStore.currentUser.id;
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        profilePic.value = data.profilePicture || null;
+        // Sync authStore if needed
+        if (authStore.currentUser) {
+          authStore.currentUser.profilePicture = profilePic.value || undefined;
+        }
+      }
     } else {
       router.push('/login');
     }
@@ -475,11 +493,13 @@ const deleteExpense = async (id: string) => {
 const logoutUser = async () => {
   try {
     await authStore.logout();
+    profilePic.value = null; // Reset profile picture on logout
     router.push('/login');
   } catch (error) {
     console.error('Logout failed:', error);
   }
 };
+
 </script>
 
 <style scoped>
@@ -637,5 +657,14 @@ const logoutUser = async () => {
   .main-content {
     margin-left: 20px;
   }
+}
+
+.profile-btn .v-avatar {
+  border: 3px solid #e0e0e0; /* Matches Profile.vue */
+  transition: transform 0.2s ease;
+}
+
+.profile-btn:hover .v-avatar {
+  transform: scale(1.1);
 }
 </style>
