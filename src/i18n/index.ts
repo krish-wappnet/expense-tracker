@@ -122,6 +122,19 @@ const messages = {
     noUsersSelected: 'No Users Selected',
     downloadChart: 'Download Chart',
     menu: 'Menu',
+
+    displayNameRequired: "Display name is required",
+    displayNameTooLong: "Display name must be 50 characters or less",
+    passwordStrength: {
+      weak: "Weak",
+      medium: "Medium",
+      strong: "Strong"
+    },
+    passwordNeedsUppercase: "Password must contain an uppercase letter",
+    passwordNeedsNumber: "Password must contain a number",
+    passwordNeedsSpecial: "Password must contain a special character",
+    
+
   },
   fr: {
     // Existing translations (unchanged for brevity; add new keys here if needed)
@@ -230,7 +243,19 @@ const messages = {
     Actions: 'Actions',
     splitWith: 'Diviser avec',
     yourShare: 'Votre part',
+
+    displayNameRequired: "Le nom d'affichage est requis",
+    displayNameTooLong: "Le nom d'affichage doit être de 50 caractères ou moins",
+    passwordStrength: {
+      weak: "Faible",
+      medium: "Moyen",
+      strong: "Fort"
+    },
+    passwordNeedsUppercase: "Le mot de passe doit contenir une lettre majuscule",
+    passwordNeedsNumber: "Le mot de passe doit contenir un numéro",
+    passwordNeedsSpecial: "Le mot de passe doit contenir un caractère spécial"
   },
+  
 };
 
 const i18n = createI18n({
